@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultor IA de Extranjería - Seguren</title>
+    <!-- Incluyendo Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configuración de fuentes y tema de Tailwind (necesaria para que las clases funcionen)
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#10b981', // Emerald 500
+                        'secondary': '#f97316', // Orange 500
+                        'background': '#f4f4f5', // Zinc 100
+                        'card': '#ffffff',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos adicionales para la estética */
+        .chat-container {
+            /* Puedes ajustar esta altura en Framer */
+            height: 650px; 
+            position: relative;
+        }
+        .chat-window {
+            /* Ajuste para que ocupe el espacio sin el input y el header */
+            height: calc(100% - 120px); 
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        .message-bubble {
+            border-radius: 1.25rem; 
+        }
+        .ai-message {
+            background-color: #d1fae5; 
+        }
+        #email-capture-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container w-full bg-card shadow-2xl rounded-3xl flex flex-col p-6">
+    
+    <!-- PANTALLA DE CAPTURA DE EMAIL (OVERLAY) -->
+    <div id="email-capture-screen" class="flex justify-center items-center p-8 text-center hidden">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Acceso a Consultas Legales</h2>
+            <p class="text-gray-600 mb-6">Introduce tu email para acceder al consultor y disfrutar de 5 consultas gratuitas al día.</p>
+            <input type="email" id="capture-email-input" placeholder="Tu correo electrónico (Requerido)" 
+                   class="w-full p-3 border border-gray-300 rounded-xl focus:ring-secondary focus:border-secondary transition duration-150 shadow-md mb-4">
+            <button id="start-session-button" 
+                    class="w-full bg-secondary hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition duration-150 shadow-lg disabled:opacity-50">
+                Acceder al Consultor
+            </button>
+            <p id="email-error-message" class="text-xs text-red-500 mt-2 hidden">Introduce un email válido.</p>
+        </div>
+    </div>
+
+    <!-- Contenido Principal del Chat -->
+    
+    <!-- Encabezado -->
+    <header class="pb-4 border-b border-gray-200">
+        <h1 class="text-3xl font-bold text-gray-800">Consultor IA de Extranjería</h1>
+        <p id="query-limit-status" class="text-sm text-gray-500">Sesión iniciada. Consultas restantes: 5/5</p>
+    </header>
+
+    <!-- Ventana de Chat (Contenedor de Mensajes) -->
+    <div id="chat-window" class="chat-window flex flex-col space-y-4 p-4 mb-4 flex-grow">
+        <!-- Mensaje de Bienvenida de la IA (Se añade al iniciar sesión) -->
+    </div>
+
+    <!-- Área de Entrada de Usuario -->
+    <div class="flex items-center space-x-4 pt-4 border-t border-gray-200">
+        <input type="text" id="user-input" placeholder="Escribe tu consulta de extranjería aquí..."
+               class="flex-grow p-3 border border-gray-300 rounded-xl focus:ring-primary focus:border-primary transition duration-150 shadow-md">
+        <button id="submit-button" onclick="handleQuery()"
+                class="bg-primary hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-xl transition duration-150 shadow-lg disabled:opacity-50">
+            Enviar
+        </button>
+    </div>
+
+    <!-- Indicador de Carga -->
+    <div id="loading-indicator" class="mt-4 text-center hidden">
+        <div class="flex justify-center items-center space-x-2">
+            <svg class="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-gray-600">Buscando información legal actualizada...</span>
+        </div>
+    </div>
+
+    <!-- Área de Mensajes del Sistema (Errores/Alertas) -->
+    <div id="system-message" class="mt-4 text-sm text-red-500 hidden p-2 rounded-lg bg-red-100"></div>
+
+</div>
+
+<script>
+    // --- CONSTANTES Y CONFIGURACIÓN ---
+    const API_MODEL = "gemini-2.5-flash-preview-09-2025";
+    const apiKey = ""; 
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
+    const MAX_RETRIES = 5;
+    const QUERY_LIMIT = 5; // Límite de consultas por día
+    const STORAGE_KEY_PREFIX = 'extranjeria_consultas_'; // Prefijo para localStorage
+    
+    // ==============================================================================================
+    // !!! PASO CRÍTICO: REEMPLAZA ESTA URL CON LA TUYA DE GOOGLE APPS SCRIPT !!!
+    // Si aún no la tienes, déjala como está y la reemplazarás después de hacer el Paso 2.
+    const GOOGLE_SHEET_APPS_SCRIPT_URL = 'Abre el archivo index.html en tu computadora (con TextEdit).'; 
+    // ==============================================================================================
+
+    // Texto de promoción de tu empresa Seguren
+    const SEGURO_PROMO_TEXT = "Como tu asesor, te recomiendo consultar las opciones de seguro de salud con nuestra empresa, **Seguren**. Somos especialistas en pólizas para trámites de extranjería en España, garantizando que cumplen con todos los requisitos migratorios (sin copagos, sin carencias para visados, etc.). Puedes obtener una cotización en https://tuseguro.insure/ o preguntando por 'cotización Seguren'.";
+
+    // Elementos del DOM
+    const chatWindow = document.getElementById('chat-window');
+    const userInput = document.getElementById('user-input');
+    const submitButton = document.getElementById('submit-button');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const systemMessage = document.getElementById('system-message');
+    const queryLimitStatus = document.getElementById('query-limit-status');
+    const emailCaptureScreen = document.getElementById('email-capture-screen');
+    const captureEmailInput = document.getElementById('capture-email-input');
+    const startSessionButton = document.getElementById('start-session-button');
+    const emailErrorMessage = document.getElementById('email-error-message');
+    
+    // Variables de sesión
+    let userSessionId = null;
+    let currentQueryCount = 0;
+    
+    // --- UTILIDADES Y LÓGICA DE SESIÓN (LOCALSTORAGE) ---
+
+    function scrollToBottom() {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function showSystemMessage(message, isError = true) {
+        systemMessage.textContent = message;
+        systemMessage.classList.remove('hidden');
+        if (isError) {
+            systemMessage.classList.add('bg-red-100', 'text-red-500');
+            systemMessage.classList.remove('bg-green-100', 'text-green-500');
+        } else {
+            systemMessage.classList.add('bg-green-100', 'text-green-500');
+            systemMessage.classList.remove('bg-red-100', 'text-red-500');
+        }
+    }
+    
+    function appendMessage(text, isUser, sources = []) {
+        const container = document.createElement('div');
+        container.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = `message-bubble p-4 max-w-lg shadow-lg ${isUser ? 'bg-primary text-white' : 'ai-message text-gray-800'} transition duration-300`;
+        
+        if (!isUser) {
+            const title = document.createElement('p');
+            title.className = 'font-semibold text-primary mb-1';
+            title.textContent = 'Asistente de Extranjería';
+            bubble.appendChild(title);
+        }
+        
+        const messageText = document.createElement('p');
+        messageText.innerHTML = text.replace(/\n/g, '<br>');
+        bubble.appendChild(messageText);
+
+        if (!isUser && sources.length > 0) {
+            const sourcesContainer = document.createElement('div');
+            sourcesContainer.className = 'mt-3 pt-3 border-t border-gray-400 border-opacity-50 text-xs';
+            
+            const sourcesTitle = document.createElement('p');
+            sourcesTitle.className = 'font-semibold mb-1 italic';
+            sourcesTitle.textContent = 'Fuentes consultadas:';
+            sourcesContainer.appendChild(sourcesTitle);
+
+            const sourcesList = document.createElement('ul');
+            sourcesList.className = 'list-disc list-inside space-y-0.5';
+
+            sources.forEach((source, index) => {
+                const listItem = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = source.uri;
+                link.target = '_blank';
+                link.className = 'text-blue-700 hover:text-blue-900 underline break-words';
+                link.textContent = source.title || `Fuente ${index + 1}`;
+                listItem.appendChild(link);
+                sourcesList.appendChild(listItem);
+            });
+
+            sourcesContainer.appendChild(sourcesList);
+            bubble.appendChild(sourcesContainer);
+        }
+
+        container.appendChild(bubble);
+        chatWindow.appendChild(container);
+        scrollToBottom();
+    }
+    
+    function isValidEmail(email) {
+        const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        return re.test(String(email).toLowerCase());
+    }
+
+    function getTodayDate() {
+        return new Date().toISOString().slice(0, 10);
+    }
+    
+    // --- LÓGICA DE GESTIÓN DE LEADS (GOOGLE SHEETS) ---
+    
+    let totalQueryCount = 0; // Se almacenará en localStorage
+
+    /** Envía el email de lead al Google Sheet usando la URL del Apps Script. */
+    async function sendLeadToGoogleSheets(email) {
+        if (!GOOGLE_SHEET_APPS_SCRIPT_URL || GOOGLE_SHEET_APPS_SCRIPT_URL === 'https://script.google.com/u/0/home/projects/1de78Zl6YW7frBHrUvVFZKZ3AVpMp7vfwlM2OPoyg2Vhf6X3rOQh1EI8M/edit') {
+            console.warn("ADVERTENCIA: URL de Apps Script no configurada. El lead no será enviado.");
+            return;
+        }
+
+        // Recupera el contador total (simulando que esto viene de una DB para el lead inicial)
+        const totalCountKey = STORAGE_KEY_PREFIX + userSessionId + '_total';
+        const totalCount = parseInt(localStorage.getItem(totalCountKey) || '0', 10);
+        
+        try {
+            // Enviamos un POST request al script con el email y el contador
+            const response = await fetch(GOOGLE_SHEET_APPS_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Necesario para evitar problemas de CORS con Apps Script
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    email: email,
+                    count: currentQueryCount, // Consultas de hoy (al momento del envío)
+                    total_count: totalCount,
+                }).toString()
+            });
+            // NOTA: Con mode: 'no-cors', la respuesta siempre parecerá exitosa, pero los datos se envían.
+            console.log("Lead enviado a Google Sheets.");
+        } catch (error) {
+            console.error("Error al enviar lead a Google Sheets:", error);
+            showSystemMessage("Advertencia: No se pudo registrar el lead en Google Sheets. Revisa la URL del script.", true);
+        }
+    }
+
+    /** Verifica y actualiza el contador de consultas. */
+    function checkAndIncrementQueryCount() {
+        const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
+        const totalCountKey = STORAGE_KEY_PREFIX + userSessionId + '_total';
+        const sessionData = JSON.parse(localStorage.getItem(sessionKey)) || {};
+        const today = getTodayDate();
+
+        // 1. Contador diario
+        if (sessionData.lastDate !== today) {
+            sessionData.count = 1;
+            sessionData.lastDate = today;
+            currentQueryCount = 1;
+        } else {
+            sessionData.count = (sessionData.count || 0) + 1;
+            currentQueryCount = sessionData.count;
+        }
+        
+        // 2. Contador total (para análisis y envíos a Sheets)
+        totalQueryCount = parseInt(localStorage.getItem(totalCountKey) || '0', 10) + 1;
+
+        // Guardar ambos
+        localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+        localStorage.setItem(totalCountKey, totalQueryCount.toString());
+        
+        return currentQueryCount <= QUERY_LIMIT;
+    }
+    
+    /** Carga la sesión y actualiza la UI de límite. */
+    function loadSession() {
+        const storedEmail = localStorage.getItem(STORAGE_KEY_PREFIX + 'email');
+        let sessionData = {};
+
+        if (storedEmail) {
+            userSessionId = storedEmail;
+            const sessionKey = STORAGE_KEY_PREFIX + storedEmail;
+            sessionData = JSON.parse(localStorage.getItem(sessionKey)) || {};
+        } else {
+            emailCaptureScreen.classList.remove('hidden');
+            return false;
+        }
+
+        if (sessionData.lastDate === getTodayDate()) {
+            currentQueryCount = sessionData.count || 0;
+        } else {
+            currentQueryCount = 0;
+        }
+        
+        // Mostrar la interfaz de chat y el estado del límite
+        emailCaptureScreen.classList.add('hidden');
+        updateLimitStatusUI();
+        if (chatWindow.children.length === 0) {
+            appendMessage(`¡Hola! Tu sesión (${storedEmail}) está activa. Tienes ${QUERY_LIMIT - currentQueryCount} consultas restantes para hoy.`, false);
+        }
+        return true;
+    }
+    
+    /** Actualiza el texto del límite en el header. */
+    function updateLimitStatusUI() {
+        const remaining = Math.max(0, QUERY_LIMIT - currentQueryCount);
+        queryLimitStatus.textContent = `Sesión iniciada. Consultas restantes: ${remaining}/${QUERY_LIMIT}`;
+
+        if (remaining === 0) {
+            submitButton.disabled = true;
+            userInput.placeholder = "Límite diario de consultas alcanzado. Vuelve mañana.";
+            showSystemMessage("Has alcanzado el límite diario de 5 consultas. Vuelve mañana para seguir preguntando.", true);
+        } else {
+            submitButton.disabled = false;
+            userInput.placeholder = "Escribe tu consulta de extranjería aquí...";
+            systemMessage.classList.add('hidden');
+        }
+    }
+
+    /** Maneja el clic en el botón de Captura de Email. */
+    startSessionButton.addEventListener('click', () => {
+        const email = captureEmailInput.value.trim();
+        emailErrorMessage.classList.add('hidden');
+        
+        if (!isValidEmail(email)) {
+            emailErrorMessage.classList.remove('hidden');
+            return;
+        }
+
+        // 1. Guardar el email para la sesión local
+        localStorage.setItem(STORAGE_KEY_PREFIX + 'email', email);
+        userSessionId = email; 
+
+        // 2. Enviar el lead a Google Sheets (Asíncrono)
+        sendLeadToGoogleSheets(email);
+
+        // 3. Crear el registro de contador para el email si no existe
+        const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
+        if (!localStorage.getItem(sessionKey)) {
+             localStorage.setItem(sessionKey, JSON.stringify({ count: 0, lastDate: getTodayDate() }));
+        }
+        
+        // 4. Iniciar la sesión de chat
+        loadSession();
+    });
+
+    // --- LÓGICA DE LA IA Y API ---
+
+    function getLLMPayload(userQuery) {
+        const systemPrompt = `Actúa como un experto consultor de extranjería y leyes migratorias con conocimiento actualizado de la legislación. Proporciona respuestas claras, concisas, objetivas y amigables. Cita las fuentes de Google Search si se proporcionan. 
+        
+        INSTRUCCIÓN CLAVE DE PROMOCIÓN: Si el usuario pregunta por un 'seguro de salud para residencia' o 'seguro médico para visado' en España, DEBES incluir al final de tu respuesta la siguiente recomendación exacta: 
+        ---
+        ${SEGURO_PROMO_TEXT}
+        ---
+
+        Tu objetivo es ser informativo, profesional y, cuando sea relevante, promocionar nuestra empresa.`;
+        
+        return {
+            contents: [{ parts: [{ text: userQuery }] }],
+            tools: [{ "google_search": {} }], 
+            systemInstruction: {
+                parts: [{ text: systemPrompt }]
+            }
+        };
+    }
+
+    async function fetchExtranjeriaInfo(userQuery, retryCount = 0) {
+        // ... (la lógica de la API de Gemini es la misma)
+        try {
+            const payload = getLLMPayload(userQuery);
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const candidate = result.candidates?.[0];
+
+            if (candidate && candidate.content?.parts?.[0]?.text) {
+                const text = candidate.content.parts[0].text;
+                let sources = [];
+                const groundingMetadata = candidate.groundingMetadata;
+
+                if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                    sources = groundingMetadata.groundingAttributions
+                        .map(attribution => ({
+                            uri: attribution.web?.uri,
+                            title: attribution.web?.title,
+                        }))
+                        .filter(source => source.uri && source.title);
+                }
+                
+                appendMessage(text, false, sources);
+                return;
+
+            } else {
+                throw new Error("Respuesta de la IA vacía o mal formada.");
+            }
+
+        } catch (error) {
+            console.error("Error en la consulta de la API:", error);
+
+            if (retryCount < MAX_RETRIES) {
+                const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return fetchExtranjeriaInfo(userQuery, retryCount + 1);
+            } else {
+                showSystemMessage("Lo siento, la consulta a la IA falló después de varios intentos. Inténtalo de nuevo más tarde o reformula tu pregunta.");
+            }
+        }
+    }
+
+
+    // --- MANEJADOR DE EVENTOS PRINCIPAL ---
+
+    window.handleQuery = async function () {
+        const query = userInput.value.trim();
+        if (query === "") return;
+        
+        if (!userSessionId) {
+             showSystemMessage("Error: Debes iniciar sesión con tu email primero.", true);
+             emailCaptureScreen.classList.remove('hidden'); 
+             return;
+        }
+
+        if (!checkAndIncrementQueryCount()) {
+            updateLimitStatusUI(); 
+            return;
+        }
+
+        appendMessage(query, true);
+        userInput.value = '';
+        systemMessage.classList.add('hidden');
+
+        submitButton.disabled = true;
+        loadingIndicator.classList.remove('hidden');
+        
+        try {
+            await fetchExtranjeriaInfo(query);
+        } finally {
+            loadingIndicator.classList.add('hidden');
+            updateLimitStatusUI(); 
+            userInput.focus();
+        }
+    }
+    
+    // Permitir envío con la tecla Enter
+    userInput.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault(); 
+            window.handleQuery();
+        }
+    });
+
+    // Iniciar la carga de la sesión al cargar la página.
+    window.onload = loadSession;
+
+</script>
+</body>
+</html>
