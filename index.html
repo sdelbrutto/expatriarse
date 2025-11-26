@@ -63,18 +63,19 @@
         }
         .header-content {
             display: flex;
-            flex-direction: column; /* Cambiado para poner el dominio arriba */
-            align-items: flex-start; /* Alinear a la izquierda */
+            flex-direction: column; /* Texto uno encima del otro */
+            align-items: flex-start;
             justify-content: center;
         }
         .domain-title {
-            font-size: 0.9rem;
+            font-size: 1rem;
             color: #1e40af; /* Color accent */
-            font-weight: 600;
-            margin-bottom: 0.2rem;
+            font-weight: 700;
+            margin-bottom: 0.1rem;
+            text-transform: lowercase;
         }
         .main-title {
-            font-size: 1.5rem; /* Un poco más grande */
+            font-size: 1.5rem;
             font-weight: bold;
             color: #1f2937; /* Gris oscuro */
         }
@@ -92,9 +93,9 @@
     <!-- PANTALLA DE CAPTURA DE EMAIL (LOGIN) -->
     <div id="email-capture-screen" class="flex justify-center items-center p-8 text-center hidden">
         <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full border border-gray-100">
-            <div class="mb-4">
-                <p class="text-accent font-bold text-lg">expatriarse.com</p>
-                <h2 class="text-3xl font-extrabold text-gray-800">Consultor IA</h2>
+            <div class="mb-6">
+                <p class="text-accent font-bold text-xl">expatriarse.com</p>
+                <h2 class="text-2xl font-bold text-gray-800 mt-1">Consultor IA</h2>
             </div>
             <p class="text-gray-600 mb-6">Ingresa tu email para acceder a tus 5 consultas gratuitas del día sobre extranjería.</p>
             <input type="email" id="capture-email-input" placeholder="Tu correo electrónico" 
@@ -110,6 +111,7 @@
     <!-- ENCABEZADO -->
     <header class="pb-4 border-b border-gray-200 relative">
         <div class="header-content">
+            <!-- TÍTULO SIN LOGO -->
             <span class="domain-title">expatriarse.com</span>
             <h1 class="main-title">Consultor IA de Extranjería</h1>
         </div>
@@ -147,18 +149,20 @@
         </div>
     </div>
     <div id="system-message" class="mt-4 text-sm text-red-600 hidden p-2 rounded-lg bg-red-100 shadow-inner"></div>
-
 </div>
 
-<!-- LÓGICA JAVASCRIPT -->
 <script>
-    // --- CONFIGURACIÓN ---
-    const API_MODEL = "gemini-2.5-flash-preview-09-2025";
-    const apiKey = ""; // La clave se inyecta automáticamente en el entorno, déjala vacía.
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
+    // --- CONFIGURACIÓN Y CREDENCIALES ---
     
-    // TU URL DE GOOGLE APPS SCRIPT (YA INTEGRADA)
+    // 1. TU CLAVE DE API DE GOOGLE (YA PEGADA)
+    const apiKey = "AIzaSyC_s2iz6pAyreN5Gz3QPutYt9rPdoMJFv8"; 
+
+    // 2. TU URL DE GOOGLE APPS SCRIPT (YA PEGADA)
     const GOOGLE_SHEET_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx66XyLh4kwvzt8U8GkVWqJ24bvvF9mRI3WGXMj7f7K_al2tU8PSlAU7wgS_BAKPjVc/exec'; 
+
+    // Modelo de IA
+    const API_MODEL = "gemini-2.5-flash-preview-09-2025";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
     
     const MAX_RETRIES = 5;
     const QUERY_LIMIT = 5; 
@@ -183,7 +187,7 @@
     let currentQueryCount = 0;
     let totalQueriesMade = 0;
 
-    // --- FUNCIONES ---
+    // --- FUNCIONES DE UI ---
 
     function showSystemMessage(message, isError = true) {
         systemMessage.textContent = message;
@@ -197,14 +201,11 @@
         }
     }
     
-    function scrollToBottom() {
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
+    function scrollToBottom() { chatWindow.scrollTop = chatWindow.scrollHeight; }
 
     function appendMessage(text, isUser, sources = []) {
         const container = document.createElement('div');
         container.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
-
         const bubble = document.createElement('div');
         bubble.className = `message-bubble p-4 max-w-lg shadow-lg transition duration-300 ${isUser ? 'user-message text-white' : 'ai-message text-gray-800'}`;
         
@@ -222,15 +223,12 @@
         if (!isUser && sources.length > 0) {
             const sourcesContainer = document.createElement('div');
             sourcesContainer.className = 'mt-3 pt-3 border-t border-gray-400 border-opacity-50 text-xs';
-            
             const sourcesTitle = document.createElement('p');
             sourcesTitle.className = 'font-semibold mb-1 italic';
             sourcesTitle.textContent = 'Fuentes consultadas:';
             sourcesContainer.appendChild(sourcesTitle);
-
             const sourcesList = document.createElement('ul');
             sourcesList.className = 'list-disc list-inside space-y-0.5';
-
             sources.forEach((source, index) => {
                 const listItem = document.createElement('li');
                 const link = document.createElement('a');
@@ -241,11 +239,9 @@
                 listItem.appendChild(link);
                 sourcesList.appendChild(listItem);
             });
-
             sourcesContainer.appendChild(sourcesList);
             bubble.appendChild(sourcesContainer);
         }
-
         container.appendChild(bubble);
         chatWindow.appendChild(container);
         scrollToBottom();
@@ -256,75 +252,48 @@
         return re.test(String(email).toLowerCase());
     }
     
-    function getTodayDate() {
-        return new Date().toISOString().slice(0, 10);
-    }
+    function getTodayDate() { return new Date().toISOString().slice(0, 10); }
     
     // --- ENVIAR LEAD A GOOGLE SHEETS ---
     async function sendEmailToExternalService(email, count, totalCount) {
-        const params = new URLSearchParams({
-            email: email,
-            count: count,
-            total_count: totalCount 
-        }).toString();
-
+        const params = new URLSearchParams({ email: email, count: count, total_count: totalCount }).toString();
         try {
-            // Usamos mode: 'no-cors' para evitar errores de seguridad del navegador
-            await fetch(`${GOOGLE_SHEET_APPS_SCRIPT_URL}?${params}`, {
-                method: 'POST',
-                mode: 'no-cors' 
-            });
+            await fetch(`${GOOGLE_SHEET_APPS_SCRIPT_URL}?${params}`, { method: 'POST', mode: 'no-cors' });
             console.log("Lead enviado a Google Sheets");
-        } catch (error) {
-            console.error("Error al enviar lead a Google Sheets:", error);
-            // No mostramos error al usuario para no interrumpir el flujo, ya que el chat sigue funcionando
-        }
+        } catch (error) { console.error("Error al enviar lead:", error); }
     }
     
+    // --- GESTIÓN DE LÍMITES ---
     function checkAndIncrementQueryCount() {
         const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
         const today = getTodayDate();
         let sessionData = JSON.parse(localStorage.getItem(sessionKey)) || { count: 0, lastDate: today, totalCount: 0 };
-        
         totalQueriesMade = sessionData.totalCount || 0;
-
-        if (sessionData.lastDate !== today) {
-            sessionData.count = 1;
-            sessionData.lastDate = today;
-        } else {
-            sessionData.count = (sessionData.count || 0) + 1;
-        }
-
+        if (sessionData.lastDate !== today) { sessionData.count = 1; sessionData.lastDate = today; } 
+        else { sessionData.count = (sessionData.count || 0) + 1; }
         sessionData.totalCount = (sessionData.totalCount || 0) + 1;
-
         currentQueryCount = sessionData.count;
         totalQueriesMade = sessionData.totalCount;
-
         localStorage.setItem(sessionKey, JSON.stringify(sessionData));
         return currentQueryCount <= QUERY_LIMIT;
     }
     
     function loadSession() {
         const storedEmail = localStorage.getItem(STORAGE_KEY_PREFIX + 'email');
-
         if (storedEmail) {
             userSessionId = storedEmail;
             emailCaptureScreen.classList.add('hidden');
             checkAndIncrementQueryCount(); 
             updateLimitStatusUI(); 
-            
             if (chatWindow.children.length === 0) {
                  appendMessage(`¡Hola! Tu sesión (${storedEmail}) está activa. Tienes ${QUERY_LIMIT - currentQueryCount} consultas restantes para hoy.`, false);
             }
-        } else {
-            emailCaptureScreen.classList.remove('hidden');
-        }
+        } else { emailCaptureScreen.classList.remove('hidden'); }
     }
     
     function updateLimitStatusUI() {
         const remaining = Math.max(0, QUERY_LIMIT - currentQueryCount);
         queryLimitStatus.textContent = `Sesión iniciada. Consultas restantes: ${remaining}/${QUERY_LIMIT}`;
-
         if (remaining === 0) {
             submitButton.disabled = true;
             userInput.placeholder = "Límite diario alcanzado. Vuelve mañana.";
@@ -339,138 +308,87 @@
     startSessionButton.addEventListener('click', () => {
         const email = captureEmailInput.value.trim();
         emailErrorMessage.classList.add('hidden');
-        
-        if (!isValidEmail(email)) {
-            emailErrorMessage.classList.remove('hidden');
-            return;
-        }
-
+        if (!isValidEmail(email)) { emailErrorMessage.classList.remove('hidden'); return; }
         localStorage.setItem(STORAGE_KEY_PREFIX + 'email', email);
         userSessionId = email; 
-
         const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
         if (!localStorage.getItem(sessionKey)) {
              localStorage.setItem(sessionKey, JSON.stringify({ count: 0, lastDate: getTodayDate(), totalCount: 0 }));
         }
-
         sendEmailToExternalService(email, 0, 0);
-
         loadSession();
     });
 
+    // --- LLAMADA A LA IA ---
     function getLLMPayload(userQuery) {
         const systemPrompt = `Actúa como un experto consultor de extranjería y leyes migratorias con conocimiento actualizado de la legislación. Proporciona respuestas claras, concisas, objetivas y amigables. Cita las fuentes de Google Search si se proporcionan. 
-        
         INSTRUCCIÓN CLAVE DE PROMOCIÓN: Si el usuario pregunta por un 'seguro de salud para residencia' o 'seguro médico para visado' en España, DEBES incluir al final de tu respuesta la siguiente recomendación exacta: 
         ---
         ${SEGURO_PROMO_TEXT}
         ---
-
         Tu objetivo es ser informativo, profesional y, cuando sea relevante, promocionar nuestra empresa.`;
         
         return {
             contents: [{ parts: [{ text: userQuery }] }],
             tools: [{ "google_search": {} }], 
-            systemInstruction: {
-                parts: [{ text: systemPrompt }]
-            }
+            systemInstruction: { parts: [{ text: systemPrompt }] }
         };
     }
 
     async function fetchExtranjeriaInfo(userQuery, retryCount = 0) {
         try {
             const payload = getLLMPayload(userQuery);
-
             const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
-
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
             const result = await response.json();
             const candidate = result.candidates?.[0];
-
             if (candidate && candidate.content?.parts?.[0]?.text) {
                 const text = candidate.content.parts[0].text;
                 let sources = [];
                 const groundingMetadata = candidate.groundingMetadata;
-
                 if (groundingMetadata && groundingMetadata.groundingAttributions) {
                     sources = groundingMetadata.groundingAttributions
-                        .map(attribution => ({
-                            uri: attribution.web?.uri,
-                            title: attribution.web?.title,
-                        }))
+                        .map(attribution => ({ uri: attribution.web?.uri, title: attribution.web?.title }))
                         .filter(source => source.uri && source.title);
                 }
-                
                 appendMessage(text, false, sources);
                 return;
-
-            } else {
-                throw new Error("Respuesta de la IA vacía o mal formada.");
-            }
-
+            } else { throw new Error("Respuesta vacía."); }
         } catch (error) {
-            console.error("Error en la consulta de la API:", error);
-
             if (retryCount < MAX_RETRIES) {
                 const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return fetchExtranjeriaInfo(userQuery, retryCount + 1);
             } else {
-                showSystemMessage("Lo siento, la consulta a la IA falló después de varios intentos. Inténtalo de nuevo más tarde o reformula tu pregunta.");
+                showSystemMessage("Lo siento, la consulta a la IA falló. Verifica tu clave de API.");
             }
         }
     }
 
-    // --- MANEJADOR DE EVENTOS PRINCIPAL ---
-
     window.handleQuery = async function () {
         const query = userInput.value.trim();
         if (query === "") return;
-        
-        if (!userSessionId) {
-             showSystemMessage("Error: Debes iniciar sesión primero.");
-             emailCaptureScreen.classList.remove('hidden'); 
-             return;
-        }
-
-        if (!checkAndIncrementQueryCount()) {
-            updateLimitStatusUI(); 
-            return;
-        }
-
+        if (!userSessionId) { showSystemMessage("Error: Debes iniciar sesión primero."); emailCaptureScreen.classList.remove('hidden'); return; }
+        if (!checkAndIncrementQueryCount()) { updateLimitStatusUI(); return; }
         appendMessage(query, true);
         userInput.value = '';
         systemMessage.classList.add('hidden');
-
         submitButton.disabled = true;
         loadingIndicator.classList.remove('hidden');
-        
         try {
             await fetchExtranjeriaInfo(query);
-            
-            // Enviar ACTUALIZACIÓN de contadores a Google Sheets (Solo si la consulta tuvo éxito)
             sendEmailToExternalService(userSessionId, currentQueryCount, totalQueriesMade);
-
         } catch (error) {
-            // Revertir el contador si la consulta a la IA falla
             const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
             let sessionData = JSON.parse(localStorage.getItem(sessionKey));
-            
             if (sessionData && sessionData.count > 0) {
                 sessionData.count -= 1;
-                sessionData.totalCount -= 1;
                 localStorage.setItem(sessionKey, JSON.stringify(sessionData));
                 currentQueryCount = sessionData.count;
             }
-            showSystemMessage("Error al procesar la consulta. Por favor, inténtalo de nuevo.");
-            
+            showSystemMessage("Error al procesar la consulta.");
         } finally {
             loadingIndicator.classList.add('hidden');
             updateLimitStatusUI(); 
@@ -478,17 +396,8 @@
         }
     }
     
-    // Permitir envío con la tecla Enter
-    userInput.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter' && !submitButton.disabled) {
-            event.preventDefault(); 
-            window.handleQuery();
-        }
-    });
-
-    // Iniciar la carga de la sesión al cargar la página.
+    userInput.addEventListener('keypress', function(event) { if (event.key === 'Enter' && !submitButton.disabled) { event.preventDefault(); window.handleQuery(); } });
     window.onload = loadSession;
-
 </script>
 </body>
 </html>
