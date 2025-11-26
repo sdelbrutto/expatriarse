@@ -222,12 +222,15 @@
         if (!isUser && sources.length > 0) {
             const sourcesContainer = document.createElement('div');
             sourcesContainer.className = 'mt-3 pt-3 border-t border-gray-400 border-opacity-50 text-xs';
+            
             const sourcesTitle = document.createElement('p');
             sourcesTitle.className = 'font-semibold mb-1 italic';
             sourcesTitle.textContent = 'Fuentes consultadas:';
             sourcesContainer.appendChild(sourcesTitle);
+
             const sourcesList = document.createElement('ul');
             sourcesList.className = 'list-disc list-inside space-y-0.5';
+
             sources.forEach((source, index) => {
                 const listItem = document.createElement('li');
                 const link = document.createElement('a');
@@ -238,6 +241,7 @@
                 listItem.appendChild(link);
                 sourcesList.appendChild(listItem);
             });
+
             sourcesContainer.appendChild(sourcesList);
             bubble.appendChild(sourcesContainer);
         }
@@ -292,6 +296,7 @@
         }
 
         sessionData.totalCount = (sessionData.totalCount || 0) + 1;
+
         currentQueryCount = sessionData.count;
         totalQueriesMade = sessionData.totalCount;
 
@@ -349,6 +354,7 @@
         }
 
         sendEmailToExternalService(email, 0, 0);
+
         loadSession();
     });
 
@@ -374,13 +380,16 @@
     async function fetchExtranjeriaInfo(userQuery, retryCount = 0) {
         try {
             const payload = getLLMPayload(userQuery);
+
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
 
             const result = await response.json();
             const candidate = result.candidates?.[0];
@@ -398,22 +407,28 @@
                         }))
                         .filter(source => source.uri && source.title);
                 }
+                
                 appendMessage(text, false, sources);
                 return;
+
             } else {
-                throw new Error("Respuesta vacía.");
+                throw new Error("Respuesta de la IA vacía o mal formada.");
             }
 
         } catch (error) {
+            console.error("Error en la consulta de la API:", error);
+
             if (retryCount < MAX_RETRIES) {
                 const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return fetchExtranjeriaInfo(userQuery, retryCount + 1);
             } else {
-                showSystemMessage("Lo siento, la consulta a la IA falló. Inténtalo de nuevo.");
+                showSystemMessage("Lo siento, la consulta a la IA falló después de varios intentos. Inténtalo de nuevo más tarde o reformula tu pregunta.");
             }
         }
     }
+
+    // --- MANEJADOR DE EVENTOS PRINCIPAL ---
 
     window.handleQuery = async function () {
         const query = userInput.value.trim();
@@ -433,22 +448,29 @@
         appendMessage(query, true);
         userInput.value = '';
         systemMessage.classList.add('hidden');
+
         submitButton.disabled = true;
         loadingIndicator.classList.remove('hidden');
         
         try {
             await fetchExtranjeriaInfo(query);
+            
+            // Enviar ACTUALIZACIÓN de contadores a Google Sheets (Solo si la consulta tuvo éxito)
             sendEmailToExternalService(userSessionId, currentQueryCount, totalQueriesMade);
+
         } catch (error) {
-            // Revertir contador en caso de error
+            // Revertir el contador si la consulta a la IA falla
             const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
             let sessionData = JSON.parse(localStorage.getItem(sessionKey));
+            
             if (sessionData && sessionData.count > 0) {
                 sessionData.count -= 1;
+                sessionData.totalCount -= 1;
                 localStorage.setItem(sessionKey, JSON.stringify(sessionData));
                 currentQueryCount = sessionData.count;
             }
-            showSystemMessage("Error al procesar la consulta.");
+            showSystemMessage("Error al procesar la consulta. Por favor, inténtalo de nuevo.");
+            
         } finally {
             loadingIndicator.classList.add('hidden');
             updateLimitStatusUI(); 
@@ -456,6 +478,7 @@
         }
     }
     
+    // Permitir envío con la tecla Enter
     userInput.addEventListener('keypress', function(event) {
         if (event.key === 'Enter' && !submitButton.disabled) {
             event.preventDefault(); 
@@ -463,7 +486,9 @@
         }
     });
 
+    // Iniciar la carga de la sesión al cargar la página.
     window.onload = loadSession;
+
 </script>
 </body>
 </html>
