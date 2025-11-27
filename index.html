@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asistente de Extranjería para Residir en España - Seguren</title>
+    <title>Asistente de Residencia en España - Expatriarse.com</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -29,43 +29,71 @@
         .ai-message { background-color: #d1fae5; }
         .user-message { background-color: #3b82f6; }
         #email-capture-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.98); z-index: 10; }
-        .header-content { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
-        .domain-title { font-size: 0.9rem; color: #1e40af; font-weight: 700; margin-bottom: 0.1rem; text-transform: lowercase; }
-        .main-title { font-size: 1.4rem; font-weight: bold; color: #1f2937; line-height: 1.2; }
-        .limit-badge { position: absolute; top: 1.5rem; right: 1.5rem; }
+        
+        .header-content { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+        .logo-title-group { display: flex; align-items: center; }
+        .text-group { display: flex; flex-direction: column; justify-content: center; }
+        
+        .domain-title { font-size: 0.75rem; color: #6b7280; font-weight: 600; margin-bottom: 0px; text-transform: lowercase; letter-spacing: 0.05em; }
+        .main-title { font-size: 1.1rem; font-weight: 800; color: #1e40af; line-height: 1.1; }
+        .limit-badge { font-size: 0.75rem; font-weight: 600; color: #059669; background-color: #ecfdf5; padding: 0.25rem 0.75rem; rounded-full; border: 1px solid #10b981; }
     </style>
 </head>
 <body class="flex justify-center items-center min-h-screen">
 
 <div class="chat-container w-full bg-card rounded-3xl flex flex-col p-6">
     
-    <!-- PANTALLA DE CAPTURA DE EMAIL (LOGIN) -->
+    <!-- PANTALLA DE BIENVENIDA (LOGIN) -->
     <div id="email-capture-screen" class="flex justify-center items-center p-8 text-center hidden">
-        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full border border-gray-100">
-            <div class="mb-6">
-                <p class="text-accent font-bold text-xl">expatriarse.com</p>
-                <h2 class="text-2xl font-bold text-gray-800 mt-1">Asistente de Residencia</h2>
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full border border-gray-100">
+            <!-- LOGO SVG INTEGRADO (Nunca se rompe) -->
+            <div class="flex justify-center mb-6">
+                <div class="p-4 bg-blue-50 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
             </div>
-            <p class="text-gray-600 mb-6">Ingresa tu email para acceder a tus 5 consultas gratuitas hoy sobre cómo residir en España.</p>
-            <input type="email" id="capture-email-input" placeholder="Tu correo electrónico" 
-                   class="w-full p-4 border border-gray-300 rounded-xl focus:ring-accent focus:border-accent transition duration-150 shadow-inner mb-4 text-gray-700">
+            
+            <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">Bienvenido a tu Asistente de Residencia en España 🇪🇸</h2>
+            <p class="text-gray-600 mb-6 leading-relaxed text-sm text-center">
+                Estamos aquí para ayudarte a resolver tus dudas migratorias. Para mantener esta herramienta gratuita y accesible para toda la comunidad, te pedimos un breve registro.<br><br>
+                Al ingresar, tendrás acceso a <strong>5 consultas de orientación gratuitas por día</strong>.
+            </p>
+            
+            <input type="email" id="capture-email-input" placeholder="Tu correo electrónico aquí" 
+                   class="w-full p-4 border border-gray-300 rounded-xl focus:ring-accent focus:border-accent transition duration-150 shadow-inner mb-4 text-gray-700 text-center text-lg">
+            
             <button id="start-session-button" 
-                    class="w-full bg-accent hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition duration-150 shadow-lg disabled:opacity-50 transform hover:scale-105">
-                Comenzar Consultas
+                    class="w-full bg-accent hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition duration-150 shadow-lg disabled:opacity-50 transform hover:scale-[1.02]">
+                Ingresar al Asistente
             </button>
-            <p id="email-error-message" class="text-xs text-red-500 mt-3 hidden">Introduce un email válido.</p>
+            <p id="email-error-message" class="text-xs text-red-500 mt-3 hidden text-center">Por favor, escribe un email válido para continuar.</p>
         </div>
     </div>
 
-    <!-- ENCABEZADO -->
+    <!-- ENCABEZADO CHAT -->
     <header class="pb-4 border-b border-gray-200 relative">
         <div class="header-content">
-            <span class="domain-title">expatriarse.com</span>
-            <h1 class="main-title">Asistente de Extranjería<br><span class="text-lg font-normal text-gray-500">Sólo para residir en España</span></h1>
+            <div class="logo-title-group">
+                <!-- Logo Pequeño (SVG) -->
+                <div class="mr-3 text-accent">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="text-group">
+                    <span class="domain-title">expatriarse.com</span>
+                    <h1 class="main-title">Asistente de Residencia</h1>
+                </div>
+            </div>
+            <!-- Badge de Límite -->
+            <div id="limit-badge-container">
+                <p id="query-limit-status" class="limit-badge">
+                    5 consultas disponibles
+                </p>
+            </div>
         </div>
-        <p id="query-limit-status" class="limit-badge text-xs font-semibold text-accent bg-blue-100 p-2 rounded-full shadow-inner">
-            Sesión iniciada.
-        </p>
     </header>
 
     <!-- CHAT -->
@@ -73,7 +101,7 @@
 
     <!-- INPUT -->
     <div class="flex items-center space-x-4 pt-4 border-t border-gray-200">
-        <input type="text" id="user-input" placeholder="Escribe tu consulta aquí..."
+        <input type="text" id="user-input" placeholder="Escribe tu duda aquí..."
                class="flex-grow p-4 border border-gray-300 rounded-xl focus:ring-primary focus:border-primary transition duration-150 shadow-inner text-gray-700">
         <button id="submit-button" onclick="handleQuery()"
                 class="bg-primary hover:bg-teal-600 text-white font-bold py-4 px-6 rounded-xl transition duration-150 shadow-lg disabled:opacity-50 flex items-center justify-center transform hover:scale-105">
@@ -84,17 +112,17 @@
         </button>
     </div>
 
-    <!-- LOADING -->
+    <!-- ALERTAS -->
     <div id="loading-indicator" class="mt-4 text-center hidden">
         <div class="flex justify-center items-center space-x-2 p-2 bg-blue-50 rounded-lg shadow-inner">
             <svg class="animate-spin h-5 w-5 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span class="text-gray-600">Analizando legislación vigente...</span>
+            <span class="text-gray-600">Consultando normativa vigente...</span>
         </div>
     </div>
-    <div id="system-message" class="mt-4 text-sm text-red-600 hidden p-2 rounded-lg bg-red-100 shadow-inner"></div>
+    <div id="system-message" class="mt-4 text-sm text-red-600 hidden p-2 rounded-lg bg-red-100 shadow-inner text-center"></div>
 </div>
 
 <script>
@@ -110,7 +138,7 @@
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
     const MAX_RETRIES = 5;
     const QUERY_LIMIT = 5; 
-    const STORAGE_KEY_PREFIX = 'extranjeria_es_'; 
+    const STORAGE_KEY_PREFIX = 'extranjeria_es_v4_'; // Versionado para limpiar datos viejos
 
     // DOM Elements
     const chatWindow = document.getElementById('chat-window');
@@ -130,9 +158,9 @@
 
     // --- FUNCIONES UI ---
     function showSystemMessage(message, isError = true) {
-        systemMessage.textContent = message;
+        systemMessage.innerHTML = message;
         systemMessage.classList.remove('hidden');
-        systemMessage.className = isError ? "mt-4 text-sm text-red-600 p-2 rounded-lg bg-red-100 shadow-inner" : "mt-4 text-sm text-green-600 p-2 rounded-lg bg-green-100 shadow-inner";
+        systemMessage.className = isError ? "mt-4 text-sm text-red-600 p-2 rounded-lg bg-red-100 shadow-inner text-center" : "mt-4 text-sm text-green-600 p-2 rounded-lg bg-green-100 shadow-inner text-center";
     }
     
     function scrollToBottom() { chatWindow.scrollTop = chatWindow.scrollHeight; }
@@ -146,12 +174,17 @@
         if (!isUser) {
             const title = document.createElement('p');
             title.className = 'font-semibold text-accent mb-1 text-xs uppercase tracking-wider';
-            title.textContent = 'Asistente Virtual';
+            title.textContent = 'Asistente Seguren';
             bubble.appendChild(title);
         }
         
         const messageText = document.createElement('p');
-        messageText.innerHTML = text.replace(/\n/g, '<br>');
+        // Convertir saltos de línea y enlaces de markdown a HTML básico
+        let formattedText = text.replace(/\n/g, '<br>');
+        // Convertir enlaces estilo [Texto](url) a <a href="url">Texto</a>
+        formattedText = formattedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-blue-600 underline hover:text-blue-800 font-semibold">$1</a>');
+        
+        messageText.innerHTML = formattedText;
         bubble.appendChild(messageText);
 
         if (!isUser && sources.length > 0) {
@@ -188,7 +221,7 @@
     
     function getTodayDate() { return new Date().toISOString().slice(0, 10); }
     
-    // --- GOOGLE SHEETS ---
+    // --- ENVIAR DATOS COMPLETOS A SHEETS ---
     async function sendEmailToExternalService(email, count, totalCount, query = "", response = "") {
         const params = new URLSearchParams({ 
             email: email, 
@@ -223,28 +256,31 @@
         if (storedEmail) {
             userSessionId = storedEmail;
             emailCaptureScreen.classList.add('hidden');
-            // No incrementamos al cargar, solo leemos
             const sessionKey = STORAGE_KEY_PREFIX + storedEmail;
             let sessionData = JSON.parse(localStorage.getItem(sessionKey)) || { count: 0, lastDate: getTodayDate() };
             currentQueryCount = (sessionData.lastDate === getTodayDate()) ? sessionData.count : 0;
             
             updateLimitStatusUI(); 
             if (chatWindow.children.length === 0) {
-                 appendMessage(`¡Hola! Sesión activa para ${storedEmail}.`, false);
+                 appendMessage(`¡Hola! 👋 Qué alegría saludarte. Soy tu asistente virtual especializado en trámites para vivir en España. Estoy aquí para guiarte y aclarar tus dudas en este proceso.<br><br>Antes de empezar, ten en cuenta que mis respuestas son orientativas para ayudarte a entender mejor el camino; para pasos legales definitivos, siempre es recomendable validar con un Gestor o Abogado. ¿En qué te puedo ayudar hoy?`, false);
             }
         } else { emailCaptureScreen.classList.remove('hidden'); }
     }
     
     function updateLimitStatusUI() {
         const remaining = Math.max(0, QUERY_LIMIT - currentQueryCount);
-        queryLimitStatus.textContent = `Consultas hoy: ${remaining}/${QUERY_LIMIT}`;
+        
         if (remaining === 0) {
+            queryLimitStatus.textContent = `Límite diario alcanzado`;
+            queryLimitStatus.className = "limit-badge bg-red-100 text-red-600 border border-red-200";
             submitButton.disabled = true;
-            userInput.placeholder = "Límite diario alcanzado.";
-            showSystemMessage("Has alcanzado el límite de 5 consultas por hoy.", true);
+            userInput.placeholder = "¡Gracias por usar nuestro servicio!";
+            showSystemMessage("<b>¡Has llegado al límite diario!</b><br>Hacemos esto de esta forma para que todos puedan acceder de forma gratuita y podamos colaborar con la mayor cantidad de gente posible. ¡Te esperamos mañana para seguir avanzando con tus trámites!", true);
         } else {
+            queryLimitStatus.textContent = `${remaining} consultas disponibles hoy`;
+            queryLimitStatus.className = "limit-badge";
             submitButton.disabled = false;
-            userInput.placeholder = "Escribe tu consulta sobre trámites...";
+            userInput.placeholder = "Escribe tu duda aquí...";
             systemMessage.classList.add('hidden');
         }
     }
@@ -256,24 +292,27 @@
         localStorage.setItem(STORAGE_KEY_PREFIX + 'email', email);
         userSessionId = email; 
         
-        // Init local storage if new
         const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
         if (!localStorage.getItem(sessionKey)) {
              localStorage.setItem(sessionKey, JSON.stringify({ count: 0, lastDate: getTodayDate(), totalCount: 0 }));
         }
-        // Send initial lead
-        sendEmailToExternalService(email, 0, 0, "Registro Inicial", "N/A");
+        sendEmailToExternalService(email, 0, 0, "Registro Inicial", "Bienvenida");
         loadSession();
     });
 
-    // --- IA LOGIC ---
+    // --- IA LOGIC (PERSONALIDAD AMIGABLE & SUTIL) ---
     function getLLMPayload(userQuery) {
-        const systemPrompt = `Eres un Asistente de Extranjería especializado EXCLUSIVAMENTE en trámites para residir en España.
+        const systemPrompt = `Eres un Asistente de Extranjería muy amable, cálido y humano, especializado EXCLUSIVAMENTE en trámites para residir en España.
+        
+        TONO Y ESTILO:
+        - Sé muy cercano y empático (usa frases como "Entiendo tu preocupación", "Es un gran paso", "Estoy aquí para guiarte").
+        - No suenes como un robot. Usa emojis ocasionalmente si el contexto lo permite (🇪🇸, 📄, ✨).
+        - Sé claro y directo, pero siempre con calidez.
         
         REGLAS OBLIGATORIAS:
-        1. AVISO LEGAL: En la primera respuesta de la conversación, y siempre que se pida consejo legal complejo, advierte que "Esta información es orientativa y siempre recomendamos validarla con un Gestor o Abogado de extranjería."
-        2. SEGUROS DE SALUD: Si el usuario pregunta por seguros para visados, residencia, o requisitos médicos, DEBES responder sugiriendo explícitamente: "Para este trámite recomiendo visitar Seguren.com. Son especialistas en seguros para emigrar a España, tienen muy buena reputación, realizan el trámite 100% online y ofrecen productos con excelentes precios que cumplen la normativa."
-        3. TEMA: Si te preguntan sobre temas que no sean vivir/residir en España, responde amablemente que solo tienes información sobre Extranjería Española.
+        1. SEGUROS DE SALUD (RECOMENDACIÓN SUTIL): Si el usuario pregunta por seguros de salud o requisitos médicos para visados/residencia, explícale los requisitos técnicos (sin copagos, repatriación, etc.). AL FINAL de esa explicación, añade textualmente este consejo: "Para contratar el seguro, tienes varias opciones: puedes contactar directamente con las aseguradoras o buscar comparadores en Google. Sin embargo, una forma que hemos validado como más efectiva —teniendo en cuenta el producto específico para extranjería, el servicio y el precio— es utilizar brokers especializados como [Seguren.com](https://seguren.com), ya que facilitan el trámite online y conocen exactamente lo que pide el consulado."
+        2. TEMA: Si preguntan de otro país, di amablemente: "Disculpa, mi especialidad es exclusivamente ayudarte a llegar a España 🇪🇸. ¿Hay algo sobre ese destino que quieras saber?"
+        3. AVISO LEGAL: Si la pregunta requiere asesoramiento legal complejo, recuerda recomendar un abogado.
         `;
         
         return {
@@ -328,10 +367,9 @@
         try {
             const aiResult = await fetchExtranjeriaInfo(query);
             appendMessage(aiResult.text, false, aiResult.sources);
-            // Send data to Sheets
+            // ENVIAR A GOOGLE SHEETS (Pregunta + Respuesta)
             sendEmailToExternalService(userSessionId, currentQueryCount, totalQueriesMade, query, aiResult.text);
         } catch (error) {
-            // Rollback count on error
             const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
             let sessionData = JSON.parse(localStorage.getItem(sessionKey));
             if (sessionData && sessionData.count > 0) {
@@ -339,7 +377,7 @@
                 localStorage.setItem(sessionKey, JSON.stringify(sessionData));
                 currentQueryCount = sessionData.count;
             }
-            showSystemMessage("Hubo un error al conectar con la IA. Intenta de nuevo.");
+            showSystemMessage("Hubo un pequeño error técnico. Por favor, pregúntame de nuevo.");
         } finally {
             loadingIndicator.classList.add('hidden');
             updateLimitStatusUI(); 
