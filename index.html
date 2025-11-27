@@ -128,17 +128,14 @@
 <script>
     // --- CONFIGURACIÓN ---
     
-    // 1. TU CLAVE DE API DE GOOGLE
     const apiKey = "AIzaSyC_s2iz6pAyreN5Gz3QPutYt9rPdoMJFv8"; 
-
-    // 2. TU URL DE GOOGLE APPS SCRIPT
     const GOOGLE_SHEET_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx66XyLh4kwvzt8U8GkVWqJ24bvvF9mRI3WGXMj7f7K_al2tU8PSlAU7wgS_BAKPjVc/exec'; 
 
     const API_MODEL = "gemini-2.5-flash-preview-09-2025";
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
     const MAX_RETRIES = 5;
     const QUERY_LIMIT = 5; 
-    const STORAGE_KEY_PREFIX = 'extranjeria_es_v4_'; // Versionado para limpiar datos viejos
+    const STORAGE_KEY_PREFIX = 'extranjeria_es_v5_'; // Nueva versión para limpiar caché
 
     // DOM Elements
     const chatWindow = document.getElementById('chat-window');
@@ -179,9 +176,7 @@
         }
         
         const messageText = document.createElement('p');
-        // Convertir saltos de línea y enlaces de markdown a HTML básico
         let formattedText = text.replace(/\n/g, '<br>');
-        // Convertir enlaces estilo [Texto](url) a <a href="url">Texto</a>
         formattedText = formattedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-blue-600 underline hover:text-blue-800 font-semibold">$1</a>');
         
         messageText.innerHTML = formattedText;
