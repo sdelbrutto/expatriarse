@@ -37,6 +37,9 @@
         .domain-title { font-size: 0.75rem; color: #6b7280; font-weight: 600; margin-bottom: 0px; text-transform: lowercase; letter-spacing: 0.05em; }
         .main-title { font-size: 1.1rem; font-weight: 800; color: #1e40af; line-height: 1.1; }
         .limit-badge { font-size: 0.75rem; font-weight: 600; color: #059669; background-color: #ecfdf5; padding: 0.25rem 0.75rem; rounded-full; border: 1px solid #10b981; }
+        
+        /* Clase para ajustar el logo */
+        .logo-img { object-fit: contain; }
     </style>
 </head>
 <body class="flex justify-center items-center min-h-screen">
@@ -46,8 +49,8 @@
     <!-- PANTALLA DE BIENVENIDA (LOGIN) -->
     <div id="email-capture-screen" class="flex justify-center items-center p-8 text-center hidden">
         <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full border border-gray-100">
-            <!-- Logo Grande - Usando la imagen subida -->
-            <img src="uploaded:espatriarse logo.png-191d1e30-2d94-4871-b4ee-4de637ed174e" alt="Logo Expatriarse" class="h-20 mx-auto mb-6 object-contain">
+            <!-- Logo Grande (Nuevo Enlace) -->
+            <img src="https://drive.google.com/uc?export=view&id=1rjKf6EjfFGVGgdzJRnxacUhuwK-fkxPZ" alt="Logo Expatriarse" class="logo-img h-24 mx-auto mb-6">
             
             <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">Bienvenido a tu Asistente de Residencia en España 🇪🇸</h2>
             <p class="text-gray-600 mb-6 leading-relaxed text-sm text-center">
@@ -70,8 +73,8 @@
     <header class="pb-4 border-b border-gray-200 relative">
         <div class="header-content">
             <div class="logo-title-group">
-                <!-- Logo Pequeño - Usando la imagen subida -->
-                <img src="uploaded:espatriarse logo.png-191d1e30-2d94-4871-b4ee-4de637ed174e" alt="Logo Pequeño" class="h-10 mr-3 object-contain">
+                <!-- Logo Pequeño (Nuevo Enlace) -->
+                <img src="https://drive.google.com/uc?export=view&id=1rjKf6EjfFGVGgdzJRnxacUhuwK-fkxPZ" alt="Logo Pequeño" class="logo-img h-12 mr-3">
                 <div class="text-group">
                     <span class="domain-title">expatriarse.com</span>
                     <h1 class="main-title">Asistente de Residencia</h1>
@@ -125,7 +128,7 @@
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
     const MAX_RETRIES = 5;
     const QUERY_LIMIT = 5; 
-    const STORAGE_KEY_PREFIX = 'extranjeria_es_v5_'; // Nueva versión para limpiar caché
+    const STORAGE_KEY_PREFIX = 'extranjeria_es_v5_'; 
 
     // DOM Elements
     const chatWindow = document.getElementById('chat-window');
