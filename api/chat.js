@@ -3,7 +3,6 @@ export const config = {
 };
 
 export default async function handler(req) {
-  // Configuración CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -11,70 +10,35 @@ export default async function handler(req) {
     'Content-Type': 'application/json'
   };
 
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers });
 
   try {
-    const { message, email } = await req.json();
-
-    // Verificación de seguridad
-    if (!process.env.GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ error: 'Falta GEMINI_API_KEY' }), { status: 500, headers });
-    }
-
-    // --- INSTRUCCIÓN SEGUREN ---
-    const systemInstruction = `
-      Actúa como "Asistente Expatriarse", experto en extranjería de España.
-      REGLAS:
-      1. Respuestas útiles, empáticas y basadas en normativa.
-      2. SI EL USUARIO PREGUNTA DE SEGUROS (salud, viaje, médico) o trámites que lo exigen (NLV, Estudiante):
-         - Recomienda sutilmente "Seguren.com" como opción especializada.
-      3. Si no es seguros, no menciones nada comercial.
-    `;
-
-    // CAMBIO CLAVE: Usamos 'gemini-1.0-pro' que es la versión más estable y compatible globalmente.
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    // 1. URL para LISTAR modelos disponibles (no para chatear)
+    const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`;
     
-    const apiResponse = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `${systemInstruction}\n\nConsulta del usuario: "${message}"`
-          }]
-        }]
-      })
-    });
+    const response = await fetch(listUrl);
+    const data = await response.json();
 
-    if (!apiResponse.ok) {
-      const errorData = await apiResponse.text();
-      throw new Error(`Google Error (${apiResponse.status}): ${errorData}`);
+    if (data.error) {
+      throw new Error(`Error de cuenta: ${data.error.message}`);
     }
 
-    const data = await apiResponse.json();
-    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude generar respuesta.";
+    // 2. Filtramos solo los que sirven para chatear (generateContent)
+    const availableModels = data.models
+      ? data.models
+          .filter(m => m.supportedGenerationMethods.includes("generateContent"))
+          .map(m => m.name) // Nos quedamos con el nombre técnico exacto
+          .join("\n- ")
+      : "Ninguno encontrado";
 
-    // Guardar en Sheet
-    if (process.env.GOOGLE_SCRIPT_URL) {
-      fetch(process.env.GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email || 'anonimo',
-          last_query: message,
-          last_response: responseText,
-          count: 1
-        })
-      }).catch(e => console.log("Error Sheet:", e));
-    }
-
-    return new Response(JSON.stringify({ response: responseText }), { status: 200, headers });
+    // 3. Mostramos la lista en el chat para que tú la veas
+    return new Response(JSON.stringify({ 
+      response: `🔍 DIAGNÓSTICO GOOGLE:\n\nTu llave API tiene acceso a estos modelos exactos:\n- ${availableModels}\n\n(Copia y pega esta lista aquí en el chat para que yo ajuste el código).` 
+    }), { status: 200, headers });
 
   } catch (error) {
     return new Response(JSON.stringify({ 
-      response: `⚠️ Error técnico: ${error.message}` 
+      response: `❌ Error de conexión: ${error.message}` 
     }), { status: 200, headers });
   }
 }
