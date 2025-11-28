@@ -1,9 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente de Residencia en España - Expatriarse.com</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'primary': '#10b981', 
+                        'secondary': '#f97316', 
+                        'accent': '#1e40af', 
+                        'background': '#f4f4f5', 
+                        'card': '#ffffff', 
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f4f4f5; font-family: 'Inter', sans-serif; padding: 1rem; }
+        .chat-container { max-width: 800px; height: 650px; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        .chat-window { height: calc(100% - 120px); overflow-y: auto; scroll-behavior: smooth; }
+        .message-bubble { border-radius: 1.25rem; }
+        .ai-message { background-color: #d1fae5; }
+        .user-message { background-color: #3b82f6; }
+        #email-capture-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.98); z-index: 10; }
+        
+        .header-content { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+        .logo-title-group { display: flex; align-items: center; }
+        .text-group { display: flex; flex-direction: column; justify-content: center; }
+        
+        .domain-title { font-size: 0.75rem; color: #6b7280; font-weight: 600; margin-bottom: 0px; text-transform: lowercase; letter-spacing: 0.05em; }
+        .main-title { font-size: 1.1rem; font-weight: 800; color: #1e40af; line-height: 1.1; }
+        .limit-badge { font-size: 0.75rem; font-weight: 600; color: #059669; background-color: #ecfdf5; padding: 0.25rem 0.75rem; rounded-full; border: 1px solid #10b981; }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen">
+
+<div class="chat-container w-full bg-card rounded-3xl flex flex-col p-6">
+    
+    <!-- PANTALLA DE BIENVENIDA (LOGIN) -->
+    <div id="email-capture-screen" class="flex justify-center items-center p-8 text-center hidden">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full border border-gray-100">
+            <!-- Logo Grande -->
+            <img src="https://drive.google.com/uc?export=view&id=1rjKf6EjfFGVGgdzJRnxacUhuwK-fkxPZ" alt="Logo Expatriarse" class="h-24 mx-auto mb-6 object-contain">
+            
+            <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">Bienvenido a tu Asistente de Residencia en España 🇪🇸</h2>
+            <p class="text-gray-600 mb-6 leading-relaxed text-sm text-center">
+                Estamos aquí para ayudarte a resolver tus dudas migratorias. Para mantener esta herramienta gratuita y accesible para toda la comunidad, te pedimos un breve registro.<br><br>
+                Al ingresar, tendrás acceso a <strong>5 consultas de orientación gratuitas por día</strong>.
+            </p>
+            
+            <input type="email" id="capture-email-input" placeholder="Tu correo electrónico aquí" 
+                   class="w-full p-4 border border-gray-300 rounded-xl focus:ring-accent focus:border-accent transition duration-150 shadow-inner mb-4 text-gray-700 text-center text-lg">
+            
+            <button id="start-session-button" 
+                    class="w-full bg-accent hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition duration-150 shadow-lg disabled:opacity-50 transform hover:scale-[1.02]">
+                Ingresar al Asistente
+            </button>
+            <p id="email-error-message" class="text-xs text-red-500 mt-3 hidden text-center">Por favor, escribe un email válido para continuar.</p>
+        </div>
+    </div>
+<!-- ENCABEZADO CHAT -->
+    <header class="pb-4 border-b border-gray-200 relative">
+        <div class="header-content">
+            <div class="logo-title-group">
+                <!-- Logo Pequeño -->
+                <img src="https://drive.google.com/uc?export=view&id=1rjKf6EjfFGVGgdzJRnxacUhuwK-fkxPZ" alt="Logo Pequeño" class="h-12 mr-3 object-contain">
+                <div class="text-group">
+                    <span class="domain-title">expatriarse.com</span>
+                    <h1 class="main-title">Asistente de Residencia</h1>
+                </div>
+            </div>
+            <!-- Badge de Límite -->
+            <div id="limit-badge-container">
+                <p id="query-limit-status" class="limit-badge">
+                    5 consultas disponibles
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <!-- CHAT -->
+    <div id="chat-window" class="chat-window flex flex-col space-y-4 p-4 mb-4 flex-grow"></div>
+
+    <!-- INPUT -->
+    <div class="flex items-center space-x-4 pt-4 border-t border-gray-200">
+        <input type="text" id="user-input" placeholder="Escribe tu duda aquí..."
+               class="flex-grow p-4 border border-gray-300 rounded-xl focus:ring-primary focus:border-primary transition duration-150 shadow-inner text-gray-700">
+        <button id="submit-button" onclick="handleQuery()"
+                class="bg-primary hover:bg-teal-600 text-white font-bold py-4 px-6 rounded-xl transition duration-150 shadow-lg disabled:opacity-50 flex items-center justify-center transform hover:scale-105">
+            Enviar
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 00.149 1.493 1 1 0 00.957.283L10 18l5.894 1.748a1 1 0 00.957-.283 1 1 0 00.149-1.493l-7-14z" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- ALERTAS -->
+    <div id="loading-indicator" class="mt-4 text-center hidden">
+        <div class="flex justify-center items-center space-x-2 p-2 bg-blue-50 rounded-lg shadow-inner">
+            <svg class="animate-spin h-5 w-5 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-gray-600">Consultando normativa vigente...</span>
+        </div>
+    </div>
+    <div id="system-message" class="mt-4 text-sm text-red-600 hidden p-2 rounded-lg bg-red-100 shadow-inner text-center"></div>
+</div>
 <script>
     // --- CONFIGURACIÓN ---
     
+    // NOTA: Ya no necesitamos la API Key aquí, porque está segura en tu backend de Vercel.
+    // La URL del script de Google Sheets se mantiene para el registro de leads.
     const GOOGLE_SHEET_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx66XyLh4kwvzt8U8GkVWqJ24bvvF9mRI3WGXMj7f7K_al2tU8PSlAU7wgS_BAKPjVc/exec'; 
 
-    const MAX_RETRIES = 5;
+    const MAX_RETRIES = 3; // Reducimos reintentos ya que el backend es más estable
     const QUERY_LIMIT = 5; 
     const STORAGE_KEY_PREFIX = 'extranjeria_es_v5_'; 
 
@@ -47,12 +164,14 @@
         
         const messageText = document.createElement('p');
         let formattedText = text.replace(/\n/g, '<br>');
+        // Convertir enlaces Markdown a HTML
         formattedText = formattedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-blue-600 underline hover:text-blue-800 font-semibold">$1</a>');
         
         messageText.innerHTML = formattedText;
         bubble.appendChild(messageText);
 
-        if (!isUser && sources.length > 0) {
+        // Mostrar fuentes si el backend las devuelve
+        if (!isUser && sources && sources.length > 0) {
             const sourcesContainer = document.createElement('div');
             sourcesContainer.className = 'mt-3 pt-3 border-t border-gray-400 border-opacity-50 text-xs';
             const sourcesTitle = document.createElement('p');
@@ -86,7 +205,7 @@
     
     function getTodayDate() { return new Date().toISOString().slice(0, 10); }
     
-    // --- ENVIAR DATOS COMPLETOS A SHEETS ---
+    // --- ENVIAR DATOS A GOOGLE SHEETS ---
     async function sendEmailToExternalService(email, count, totalCount, query = "", response = "") {
         const params = new URLSearchParams({ 
             email: email, 
@@ -97,11 +216,11 @@
         }).toString();
         try {
             await fetch(`${GOOGLE_SHEET_APPS_SCRIPT_URL}?${params}`, { method: 'POST', mode: 'no-cors' });
-            console.log("Datos enviados a Sheets");
+            // console.log("Datos enviados a Sheets");
         } catch (error) { console.error("Error Sheets:", error); }
     }
     
-    // --- LÍMITES ---
+    // --- GESTIÓN DE LÍMITES ---
     function checkAndIncrementQueryCount() {
         const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
         const today = getTodayDate();
@@ -127,7 +246,7 @@
             
             updateLimitStatusUI(); 
             if (chatWindow.children.length === 0) {
-                 appendMessage(`¡Hola! 👋 Qué alegría saludarte. Soy tu asistente virtual especializado en trámites para vivir en España. Estoy aquí para guiarte y aclarar tus dudas en este proceso.<br><br>Antes de empezar, ten en cuenta que mis respuestas son orientativas para ayudarte a entender mejor el camino; para pasos legales definitivos, siempre es recomendable validar con un Gestor o Abogado. ¿En qué te puedo ayudar hoy?`, false);
+                 appendMessage(`¡Hola! 👋 Qué alegría saludarte. Soy tu asistente virtual especializado en trámites para vivir en España. Estoy conectado de forma segura para ayudarte. ¿Qué necesitas saber hoy?`, false);
             }
         } else { emailCaptureScreen.classList.remove('hidden'); }
     }
@@ -140,7 +259,7 @@
             queryLimitStatus.className = "limit-badge bg-red-100 text-red-600 border border-red-200";
             submitButton.disabled = true;
             userInput.placeholder = "¡Gracias por usar nuestro servicio!";
-            showSystemMessage("<b>¡Has llegado al límite diario!</b><br>Hacemos esto de esta forma para que todos puedan acceder de forma gratuita y podamos colaborar con la mayor cantidad de gente posible. ¡Te esperamos mañana para seguir avanzando con tus trámites!", true);
+            showSystemMessage("<b>¡Has llegado al límite diario!</b><br>Hacemos esto para que todos puedan acceder de forma gratuita. ¡Te esperamos mañana!", true);
         } else {
             queryLimitStatus.textContent = `${remaining} consultas disponibles hoy`;
             queryLimitStatus.className = "limit-badge";
@@ -165,24 +284,33 @@
         loadSession();
     });
 
-    // --- LLAMADA A TU API BACKEND /api/chat ---
+    // --- LLAMADA AL BACKEND SEGURO (/api/chat) ---
     async function fetchExtranjeriaInfo(userQuery, retryCount = 0) {
         try {
+            // Aquí llamamos a tu función Serverless en Vercel, NO a Google directamente.
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: userQuery })
             });
-            if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+
+            if (!response.ok) {
+                throw new Error(`Error del servidor: ${response.status}`);
+            }
+
             const result = await response.json();
-            return {
-                text: result.text || "Lo siento, no pude obtener una respuesta en este momento.",
-                sources: result.sources || []
+            
+            // El backend nos devuelve { text: "...", sources: [...] }
+            return { 
+                text: result.text || "Lo siento, no pude generar una respuesta.", 
+                sources: result.sources || [] 
             };
+
         } catch (error) {
-            console.error("Error en fetchExtranjeriaInfo:", error);
+            console.error("Error fetching AI:", error);
             if (retryCount < MAX_RETRIES) {
-                const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
+                // Reintento simple con backoff
+                const delay = 1000 * (retryCount + 1);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return fetchExtranjeriaInfo(userQuery, retryCount + 1);
             }
@@ -190,12 +318,23 @@
         }
     }
 
+    // --- MANEJO DE LA CONSULTA ---
     window.handleQuery = async function () {
         const query = userInput.value.trim();
         if (query === "") return;
-        if (!userSessionId) { showSystemMessage("Error: Debes iniciar sesión primero."); emailCaptureScreen.classList.remove('hidden'); return; }
-        if (!checkAndIncrementQueryCount()) { updateLimitStatusUI(); return; }
+        
+        if (!userSessionId) { 
+            showSystemMessage("Error: Debes iniciar sesión primero."); 
+            emailCaptureScreen.classList.remove('hidden'); 
+            return; 
+        }
 
+        if (!checkAndIncrementQueryCount()) { 
+            updateLimitStatusUI(); 
+            return; 
+        }
+
+        // UI Update
         appendMessage(query, true);
         userInput.value = '';
         systemMessage.classList.add('hidden');
@@ -203,11 +342,16 @@
         loadingIndicator.classList.remove('hidden');
         
         try {
+            // Llamada Segura al Backend
             const aiResult = await fetchExtranjeriaInfo(query);
+            
             appendMessage(aiResult.text, false, aiResult.sources);
-            // ENVIAR A GOOGLE SHEETS (Pregunta + Respuesta)
+            
+            // Guardar en Sheets (para tu control de calidad)
             sendEmailToExternalService(userSessionId, currentQueryCount, totalQueriesMade, query, aiResult.text);
+
         } catch (error) {
+            // Si falla, devolvemos el crédito al usuario
             const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
             let sessionData = JSON.parse(localStorage.getItem(sessionKey));
             if (sessionData && sessionData.count > 0) {
@@ -215,7 +359,7 @@
                 localStorage.setItem(sessionKey, JSON.stringify(sessionData));
                 currentQueryCount = sessionData.count;
             }
-            showSystemMessage("Hubo un pequeño error técnico. Por favor, pregúntame de nuevo.");
+            showSystemMessage("Hubo un problema de conexión con el servidor. Por favor, intenta de nuevo.");
         } finally {
             loadingIndicator.classList.add('hidden');
             updateLimitStatusUI(); 
@@ -223,6 +367,12 @@
         }
     }
     
-    userInput.addEventListener('keypress', function(event) { if (event.key === 'Enter' && !submitButton.disabled) { event.preventDefault(); window.handleQuery(); } });
+    userInput.addEventListener('keypress', function(event) { 
+        if (event.key === 'Enter' && !submitButton.disabled) { 
+            event.preventDefault(); 
+            window.handleQuery(); 
+        } 
+    });
+    
     window.onload = loadSession;
 </script>
