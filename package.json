@@ -1,6 +1,9 @@
 {
   "name": "expatriarse-chat",
   "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Build script'"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.1.3"
   }
