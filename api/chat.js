@@ -1,36 +1,39 @@
-// Usamos 'require' (Modo Clásico) que nunca falla en Vercel
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-module.exports = async (req, res) => {
-  // Configuración de permisos (CORS)
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+// Esta configuración le dice a Vercel que use el entorno moderno (Edge/Node)
+export const config = {
+  runtime: 'edge',
+};
 
+export default async function handler(req) {
+  // Configuración manual de CORS para Edge Runtime
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  };
+
+  // Responder a la verificación del navegador (OPTIONS)
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return new Response(null, { status: 200, headers });
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Solo POST' });
+    return new Response(JSON.stringify({ error: 'Solo POST' }), { status: 405, headers });
   }
 
   try {
-    const { message, email } = req.body;
-    
+    const { message, email } = await req.json();
+
     if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ error: 'Falta API Key' });
+      return new Response(JSON.stringify({ error: 'Falta API Key' }), { status: 500, headers });
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    // --- TU INSTRUCCIÓN COMERCIAL OCULTA ---
+    // --- INSTRUCCIÓN OCULTA (SEGUREN) ---
     const systemInstruction = `
       Actúa como un consultor de extranjería experto "Asistente Expatriarse".
       REGLAS:
@@ -43,7 +46,7 @@ module.exports = async (req, res) => {
     const resultAI = await model.generateContent(`${systemInstruction}\n\nUsuario: "${message}"`);
     const responseText = resultAI.response.text();
 
-    // Guardar en Sheet (sin esperar)
+    // Guardar en Sheet (Disparar y olvidar)
     if (process.env.GOOGLE_SCRIPT_URL) {
       fetch(process.env.GOOGLE_SCRIPT_URL, {
         method: 'POST',
@@ -57,10 +60,10 @@ module.exports = async (req, res) => {
       }).catch(e => console.log("Error guardando:", e));
     }
 
-    return res.status(200).json({ response: responseText });
+    return new Response(JSON.stringify({ response: responseText }), { status: 200, headers });
 
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message });
+    console.error("Error Servidor:", error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers });
   }
-};
+}
