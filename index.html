@@ -138,19 +138,25 @@
                      <p class="text-sm text-gray-800">${text}</p>
                    </div>`;
       } else {
+        // DETECCIÓN DE ENLACES MARKDOWN [Texto](url) -> <a href="...">Texto</a>
+        let formattedText = text.replace(
+            /\[([^\]]+)\]\(([^)]+)\)/g, 
+            '<a href="$2" target="_blank" class="text-teal-600 font-bold underline hover:text-teal-800 transition">$1</a>'
+        );
+
+        // Estilo Asistente
         const errorStyle = isError ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-700 border-gray-100';
         content = `
           <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-teal-400 to-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm text-white text-xs">AI</div>
           <div class="${errorStyle} p-4 rounded-2xl rounded-tl-none shadow-md border max-w-3xl">
             <p class="text-xs font-bold text-teal-600 mb-1">ASISTENTE</p>
-            <div class="prose max-w-none text-sm leading-relaxed" style="white-space: pre-wrap;">${text}</div>
+            <div class="prose max-w-none text-sm leading-relaxed" style="white-space: pre-wrap;">${formattedText}</div>
           </div>`;
       }
       msgDiv.innerHTML = content;
       chatBox.appendChild(msgDiv);
       chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
     }
-
     function setLoading(loading) {
       sendBtn.disabled = loading;
       userInput.disabled = loading;
