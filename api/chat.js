@@ -1,7 +1,6 @@
 // api/chat.js
 
 const API_MODEL = "gemini-2.5-flash-preview-09-2025";
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const systemPrompt = `Eres un Asistente de Extranjería muy amable, cálido y humano, especializado EXCLUSIVAMENTE en trámites para residir en España.
         
@@ -24,14 +23,17 @@ function buildPayload(userQuery) {
   };
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
+  // Solo aceptamos POST
   if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
+    res.status(405).json({ error: "Method not allowed. Use POST." });
     return;
   }
 
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
   if (!GEMINI_API_KEY) {
-    res.status(500).json({ error: "GEMINI_API_KEY no configurada en Vercel" });
+    res.status(500).json({ error: "GEMINI_API_KEY no configurada en Vercel." });
     return;
   }
 
@@ -39,7 +41,7 @@ module.exports = async (req, res) => {
     const { query } = req.body || {};
 
     if (!query || typeof query !== "string") {
-      res.status(400).json({ error: "Falta el campo 'query' en el body" });
+      res.status(400).json({ error: "Falta el campo 'query' en el body." });
       return;
     }
 
@@ -55,15 +57,20 @@ module.exports = async (req, res) => {
     if (!response.ok) {
       const txt = await response.text();
       console.error("Error Gemini:", response.status, txt);
-      res.status(500).json({ error: "Error llamando a Gemini" });
+      res.status(500).json({ error: "Error llamando a Gemini." });
       return;
     }
 
     const result = await response.json();
     const candidate = result.candidates && result.candidates[0];
 
-    if (!candidate || !candidate.content || !candidate.content.parts || !candidate.content.parts[0].text) {
-      res.status(500).json({ error: "Respuesta vacía desde Gemini" });
+    if (
+      !candidate ||
+      !candidate.content ||
+      !candidate.content.parts ||
+      !candidate.content.parts[0].text
+    ) {
+      res.status(500).json({ error: "Respuesta vacía desde Gemini." });
       return;
     }
 
@@ -82,6 +89,11 @@ module.exports = async (req, res) => {
 
     res.status(200).json({ text, sources });
   } catch (err) {
+    console.error("Error en /api/chat:", err);
+    res.status(500).json({ error: "Error interno en el servidor." });
+  }
+}
+
     console.error("Error en /api/chat:", err);
     res.status(500).json({ error: "Error interno en el servidor" });
   }
