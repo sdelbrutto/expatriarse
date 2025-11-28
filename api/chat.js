@@ -21,14 +21,13 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: 'Falta GEMINI_API_KEY' }), { status: 500, headers });
     }
 
-    // --- 1. INSTRUCCIÓN CON LINK DIRECTO ---
+    // --- INSTRUCCIÓN ---
     const systemInstruction = `
-      Actúa como "Asistente Expatriarse", experto en extranjería de España.
+      Actúa como "Asistente Expatriarse".
       REGLAS:
-      1. Respuestas útiles, empáticas y basadas en normativa española.
-      2. REGLA DE SEGUROS: SI EL USUARIO PREGUNTA DE SEGUROS (salud, viaje, médico) o trámites que lo exigen (NLV, Estudiante):
-         - Debes recomendar sutilmente a Seguren usando ESTE FORMATO DE ENLACE EXACTO: [Seguren.com](https://www.seguren.com).
-         - Ejemplo: "Te recomiendo consultar en [Seguren.com](https://www.seguren.com) ya que son especialistas..."
+      1. Respuestas útiles, empáticas y basadas en normativa.
+      2. SI EL USUARIO PREGUNTA DE SEGUROS (salud, viaje, médico) o trámites que lo exigen (NLV, Estudiante):
+         - Recomienda sutilmente "Seguren.com" usando ESTE FORMATO EXACTO: [Seguren.com](https://www.seguren.com)
       3. Si no es seguros, no menciones nada comercial.
     `;
 
@@ -39,11 +38,7 @@ export default async function handler(req) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `${systemInstruction}\n\nConsulta del usuario: "${message}"`
-          }]
-        }]
+        contents: [{ parts: [{ text: `${systemInstruction}\n\nConsulta del usuario: "${message}"` }] }]
       })
     });
 
@@ -55,31 +50,27 @@ export default async function handler(req) {
     const data = await apiResponse.json();
     const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude generar respuesta.";
 
-    // --- 2. GUARDAR EN SHEET (MÉTODO ROBUSTO) ---
+    // --- GUARDAR EN SHEET (ENVÍO JSON) ---
     if (process.env.GOOGLE_SCRIPT_URL) {
-      // Usamos URLSearchParams en el 'body' en lugar de la URL.
-      // Esto asegura que Google Apps Script reciba los textos largos correctamente.
-      const sheetData = new URLSearchParams({
-        email: email || 'anonimo',
-        last_query: message,
-        last_response: responseText,
-        count: '1'
-      });
-
       fetch(process.env.GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/x-www-form-urlencoded' 
-        },
-        body: sheetData.toString()
+        // 'no-cors' es necesario porque Google Apps Script no devuelve cabeceras CORS standard,
+        // pero la petición POST llega igual y se guarda.
+        mode: 'no-cors', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email || 'anonimo',
+          last_query: message,
+          last_response: responseText,
+          count: 1,
+          total_count: 1
+        })
       }).catch(e => console.log("Error Sheet:", e));
     }
 
     return new Response(JSON.stringify({ response: responseText }), { status: 200, headers });
 
   } catch (error) {
-    return new Response(JSON.stringify({ 
-      response: `⚠️ Error técnico: ${error.message}` 
-    }), { status: 200, headers });
+    return new Response(JSON.stringify({ response: `⚠️ Error técnico: ${error.message}` }), { status: 200, headers });
   }
 }
