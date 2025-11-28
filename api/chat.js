@@ -10,9 +10,7 @@ export default async function handler(req) {
     'Content-Type': 'application/json'
   };
 
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers });
 
   try {
     const { message, email } = await req.json();
@@ -23,16 +21,16 @@ export default async function handler(req) {
 
     // --- INSTRUCCIÓN ---
     const systemInstruction = `
-      Actúa como "Asistente Expatriarse".
+      Actúa como "Asistente Expatriarse", experto en extranjería de España.
       REGLAS:
       1. Respuestas útiles, empáticas y basadas en normativa.
-      2. SI EL USUARIO PREGUNTA DE SEGUROS (salud, viaje, médico) o trámites que lo exigen (NLV, Estudiante):
-         - Recomienda sutilmente "Seguren.com" usando ESTE FORMATO EXACTO: [Seguren.com](https://www.seguren.com)
+      2. REGLA SEGUROS: Si preguntan de seguros (salud, viaje, médico, NLV, Estudiante):
+         - Recomienda sutilmente "Seguren.com" usando ESTE FORMATO: [Seguren.com](https://www.seguren.com)
       3. Si no es seguros, no menciones nada comercial.
     `;
 
-    // Llamada a Gemini (Modelo Flash 2.0)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    // 1. LLAMADA A GEMINI (Usamos gemini-pro como comodín seguro)
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -50,21 +48,22 @@ export default async function handler(req) {
     const data = await apiResponse.json();
     const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude generar respuesta.";
 
-    // --- GUARDAR EN SHEET (ENVÍO JSON) ---
+    // 2. GUARDAR EN SHEET (CORREGIDO: Nombres coinciden con el Script)
     if (process.env.GOOGLE_SCRIPT_URL) {
+      const formData = new URLSearchParams();
+      formData.append('email', email || 'anonimo');
+      formData.append('pregunta', message);      // AQUÍ: Coincide con p.pregunta
+      formData.append('respuesta', responseText); // AQUÍ: Coincide con p.respuesta
+      formData.append('count', '1');
+      formData.append('total_count', '1');
+
+      // Enviamos como formulario (x-www-form-urlencoded) que Apps Script lee perfecto
       fetch(process.env.GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        // 'no-cors' es necesario porque Google Apps Script no devuelve cabeceras CORS standard,
-        // pero la petición POST llega igual y se guarda.
-        mode: 'no-cors', 
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email || 'anonimo',
-          last_query: message,
-          last_response: responseText,
-          count: 1,
-          total_count: 1
-        })
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString()
       }).catch(e => console.log("Error Sheet:", e));
     }
 
