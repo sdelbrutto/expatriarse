@@ -3,7 +3,7 @@ export const config = {
 };
 
 export default async function handler(req) {
-  // 1. CORS Headers
+  // Configuración CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -18,6 +18,7 @@ export default async function handler(req) {
   try {
     const { message, email } = await req.json();
 
+    // Verificación de seguridad
     if (!process.env.GEMINI_API_KEY) {
       return new Response(JSON.stringify({ error: 'Falta GEMINI_API_KEY' }), { status: 500, headers });
     }
@@ -32,9 +33,8 @@ export default async function handler(req) {
       3. Si no es seguros, no menciones nada comercial.
     `;
 
-    // 2. LLAMADA A GOOGLE (MODELO ACTUALIZADO: GEMINI 1.5 FLASH)
-    // Cambiamos 'gemini-pro' por 'gemini-1.5-flash' que es el actual y más rápido.
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    // CAMBIO CLAVE: Usamos 'gemini-1.0-pro' que es la versión más estable y compatible globalmente.
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${process.env.GEMINI_API_KEY}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -56,7 +56,7 @@ export default async function handler(req) {
     const data = await apiResponse.json();
     const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude generar respuesta.";
 
-    // 3. GUARDAR EN SHEET
+    // Guardar en Sheet
     if (process.env.GOOGLE_SCRIPT_URL) {
       fetch(process.env.GOOGLE_SCRIPT_URL, {
         method: 'POST',
