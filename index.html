@@ -43,11 +43,9 @@
 
 <div class="chat-container w-full bg-card rounded-3xl flex flex-col p-6">
     
-    <!-- PANTALLA DE BIENVENIDA (LOGIN) -->
     <div id="email-capture-screen" class="flex justify-center items-center p-8 text-center hidden">
         <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full border border-gray-100">
-            <!-- Logo Grande -->
-            <img src="https://drive.google.com/uc?export=view&id=1rjKf6EjfFGVGgdzJRnxacUhuwK-fkxPZ" alt="Logo Expatriarse" class="h-24 mx-auto mb-6 object-contain">
+            <img src="/logo.png" onerror="this.src='https://via.placeholder.com/150?text=Expatriarse'" alt="Logo Expatriarse" class="h-24 mx-auto mb-6 object-contain">
             
             <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">Bienvenido a tu Asistente de Residencia en España 🇪🇸</h2>
             <p class="text-gray-600 mb-6 leading-relaxed text-sm text-center">
@@ -65,18 +63,16 @@
             <p id="email-error-message" class="text-xs text-red-500 mt-3 hidden text-center">Por favor, escribe un email válido para continuar.</p>
         </div>
     </div>
-<!-- ENCABEZADO CHAT -->
+
     <header class="pb-4 border-b border-gray-200 relative">
         <div class="header-content">
             <div class="logo-title-group">
-                <!-- Logo Pequeño -->
-                <img src="https://drive.google.com/uc?export=view&id=1rjKf6EjfFGVGgdzJRnxacUhuwK-fkxPZ" alt="Logo Pequeño" class="h-12 mr-3 object-contain">
+                <img src="/logo.png" onerror="this.style.display='none'" alt="Logo" class="h-12 mr-3 object-contain">
                 <div class="text-group">
                     <span class="domain-title">expatriarse.com</span>
                     <h1 class="main-title">Asistente de Residencia</h1>
                 </div>
             </div>
-            <!-- Badge de Límite -->
             <div id="limit-badge-container">
                 <p id="query-limit-status" class="limit-badge">
                     5 consultas disponibles
@@ -85,10 +81,8 @@
         </div>
     </header>
 
-    <!-- CHAT -->
     <div id="chat-window" class="chat-window flex flex-col space-y-4 p-4 mb-4 flex-grow"></div>
 
-    <!-- INPUT -->
     <div class="flex items-center space-x-4 pt-4 border-t border-gray-200">
         <input type="text" id="user-input" placeholder="Escribe tu duda aquí..."
                class="flex-grow p-4 border border-gray-300 rounded-xl focus:ring-primary focus:border-primary transition duration-150 shadow-inner text-gray-700">
@@ -101,26 +95,20 @@
         </button>
     </div>
 
-    <!-- ALERTAS -->
     <div id="loading-indicator" class="mt-4 text-center hidden">
         <div class="flex justify-center items-center space-x-2 p-2 bg-blue-50 rounded-lg shadow-inner">
             <svg class="animate-spin h-5 w-5 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span class="text-gray-600">Consultando normativa vigente...</span>
+            <span class="text-gray-600">Consultando información...</span>
         </div>
     </div>
     <div id="system-message" class="mt-4 text-sm text-red-600 hidden p-2 rounded-lg bg-red-100 shadow-inner text-center"></div>
 </div>
+
 <script>
     // --- CONFIGURACIÓN ---
-    
-    // NOTA: Ya no necesitamos la API Key aquí, porque está segura en tu backend de Vercel.
-    // La URL del script de Google Sheets se mantiene para el registro de leads.
-    const GOOGLE_SHEET_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx66XyLh4kwvzt8U8GkVWqJ24bvvF9mRI3WGXMj7f7K_al2tU8PSlAU7wgS_BAKPjVc/exec'; 
-
-    const MAX_RETRIES = 3; // Reducimos reintentos ya que el backend es más estable
     const QUERY_LIMIT = 5; 
     const STORAGE_KEY_PREFIX = 'extranjeria_es_v5_'; 
 
@@ -138,7 +126,6 @@
     
     let userSessionId = null;
     let currentQueryCount = 0;
-    let totalQueriesMade = 0;
 
     // --- FUNCIONES UI ---
     function showSystemMessage(message, isError = true) {
@@ -149,7 +136,7 @@
     
     function scrollToBottom() { chatWindow.scrollTop = chatWindow.scrollHeight; }
 
-    function appendMessage(text, isUser, sources = []) {
+    function appendMessage(text, isUser) {
         const container = document.createElement('div');
         container.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
         const bubble = document.createElement('div');
@@ -158,41 +145,21 @@
         if (!isUser) {
             const title = document.createElement('p');
             title.className = 'font-semibold text-accent mb-1 text-xs uppercase tracking-wider';
-            title.textContent = 'Asistente Seguren';
+            title.textContent = 'Asistente Expatriarse'; // NOMBRE CORREGIDO
             bubble.appendChild(title);
         }
         
         const messageText = document.createElement('p');
+        // Convertir saltos de línea y enlaces básicos
         let formattedText = text.replace(/\n/g, '<br>');
-        // Convertir enlaces Markdown a HTML
+        // Enlaces Markdown [Texto](url)
         formattedText = formattedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-blue-600 underline hover:text-blue-800 font-semibold">$1</a>');
+        // Negritas Markdown **Texto**
+        formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         
         messageText.innerHTML = formattedText;
         bubble.appendChild(messageText);
 
-        // Mostrar fuentes si el backend las devuelve
-        if (!isUser && sources && sources.length > 0) {
-            const sourcesContainer = document.createElement('div');
-            sourcesContainer.className = 'mt-3 pt-3 border-t border-gray-400 border-opacity-50 text-xs';
-            const sourcesTitle = document.createElement('p');
-            sourcesTitle.className = 'font-semibold mb-1 italic';
-            sourcesTitle.textContent = 'Fuentes verificadas:';
-            sourcesContainer.appendChild(sourcesTitle);
-            const sourcesList = document.createElement('ul');
-            sourcesList.className = 'list-disc list-inside space-y-0.5';
-            sources.forEach((source, index) => {
-                const listItem = document.createElement('li');
-                const link = document.createElement('a');
-                link.href = source.uri;
-                link.target = '_blank';
-                link.className = 'text-blue-700 hover:text-blue-900 underline break-words';
-                link.textContent = source.title || `Fuente ${index + 1}`;
-                listItem.appendChild(link);
-                sourcesList.appendChild(listItem);
-            });
-            sourcesContainer.appendChild(sourcesList);
-            bubble.appendChild(sourcesContainer);
-        }
         container.appendChild(bubble);
         chatWindow.appendChild(container);
         scrollToBottom();
@@ -205,34 +172,20 @@
     
     function getTodayDate() { return new Date().toISOString().slice(0, 10); }
     
-    // --- ENVIAR DATOS A GOOGLE SHEETS ---
-    async function sendEmailToExternalService(email, count, totalCount, query = "", response = "") {
-        const params = new URLSearchParams({ 
-            email: email, 
-            count: count, 
-            total_count: totalCount,
-            last_query: query,
-            last_response: response
-        }).toString();
-        try {
-            await fetch(`${GOOGLE_SHEET_APPS_SCRIPT_URL}?${params}`, { method: 'POST', mode: 'no-cors' });
-            // console.log("Datos enviados a Sheets");
-        } catch (error) { console.error("Error Sheets:", error); }
-    }
-    
     // --- GESTIÓN DE LÍMITES ---
     function checkAndIncrementQueryCount() {
         const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
         const today = getTodayDate();
-        let sessionData = JSON.parse(localStorage.getItem(sessionKey)) || { count: 0, lastDate: today, totalCount: 0 };
-        totalQueriesMade = sessionData.totalCount || 0;
-        if (sessionData.lastDate !== today) { sessionData.count = 1; sessionData.lastDate = today; } 
-        else { sessionData.count = (sessionData.count || 0) + 1; }
-        sessionData.totalCount = (sessionData.totalCount || 0) + 1;
+        let sessionData = JSON.parse(localStorage.getItem(sessionKey)) || { count: 0, lastDate: today };
+        
+        if (sessionData.lastDate !== today) { sessionData.count = 0; sessionData.lastDate = today; } 
+        
+        if (sessionData.count >= QUERY_LIMIT) return false;
+
+        sessionData.count += 1;
         currentQueryCount = sessionData.count;
-        totalQueriesMade = sessionData.totalCount;
         localStorage.setItem(sessionKey, JSON.stringify(sessionData));
-        return currentQueryCount <= QUERY_LIMIT;
+        return true;
     }
     
     function loadSession() {
@@ -276,49 +229,15 @@
         localStorage.setItem(STORAGE_KEY_PREFIX + 'email', email);
         userSessionId = email; 
         
+        // Inicializar sesión local
         const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
         if (!localStorage.getItem(sessionKey)) {
-             localStorage.setItem(sessionKey, JSON.stringify({ count: 0, lastDate: getTodayDate(), totalCount: 0 }));
+             localStorage.setItem(sessionKey, JSON.stringify({ count: 0, lastDate: getTodayDate() }));
         }
-        sendEmailToExternalService(email, 0, 0, "Registro Inicial", "Bienvenida");
         loadSession();
     });
 
-    // --- LLAMADA AL BACKEND SEGURO (/api/chat) ---
-    async function fetchExtranjeriaInfo(userQuery, retryCount = 0) {
-        try {
-            // Aquí llamamos a tu función Serverless en Vercel, NO a Google directamente.
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: userQuery })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error del servidor: ${response.status}`);
-            }
-
-            const result = await response.json();
-            
-            // El backend nos devuelve { text: "...", sources: [...] }
-            return { 
-                text: result.text || "Lo siento, no pude generar una respuesta.", 
-                sources: result.sources || [] 
-            };
-
-        } catch (error) {
-            console.error("Error fetching AI:", error);
-            if (retryCount < MAX_RETRIES) {
-                // Reintento simple con backoff
-                const delay = 1000 * (retryCount + 1);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return fetchExtranjeriaInfo(userQuery, retryCount + 1);
-            }
-            throw error;
-        }
-    }
-
-    // --- MANEJO DE LA CONSULTA ---
+    // --- MANEJO DE LA CONSULTA AL SERVIDOR ---
     window.handleQuery = async function () {
         const query = userInput.value.trim();
         if (query === "") return;
@@ -329,6 +248,7 @@
             return; 
         }
 
+        // Verificar límite ANTES de llamar al servidor
         if (!checkAndIncrementQueryCount()) { 
             updateLimitStatusUI(); 
             return; 
@@ -342,15 +262,33 @@
         loadingIndicator.classList.remove('hidden');
         
         try {
-            // Llamada Segura al Backend
-            const aiResult = await fetchExtranjeriaInfo(query);
+            // Llamada Segura a TU Backend (Vercel)
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // CORRECCIÓN: Enviamos 'message' y 'email' como espera tu servidor nuevo
+                body: JSON.stringify({ 
+                    message: query, 
+                    email: userSessionId 
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error del servidor: ${response.status}`);
+            }
+
+            const data = await response.json();
             
-            appendMessage(aiResult.text, false, aiResult.sources);
+            // CORRECCIÓN: Tu servidor devuelve 'response', no 'text'
+            const aiResponse = data.response || "Lo siento, hubo un error al procesar la respuesta.";
             
-            // Guardar en Sheets (para tu control de calidad)
-            sendEmailToExternalService(userSessionId, currentQueryCount, totalQueriesMade, query, aiResult.text);
+            appendMessage(aiResponse, false);
+
+            // NOTA: El guardado en Google Sheets ahora lo hace el servidor automáticamente,
+            // así que no necesitamos código aquí para eso. ¡Más seguro!
 
         } catch (error) {
+            console.error("Error:", error);
             // Si falla, devolvemos el crédito al usuario
             const sessionKey = STORAGE_KEY_PREFIX + userSessionId;
             let sessionData = JSON.parse(localStorage.getItem(sessionKey));
@@ -359,7 +297,7 @@
                 localStorage.setItem(sessionKey, JSON.stringify(sessionData));
                 currentQueryCount = sessionData.count;
             }
-            showSystemMessage("Hubo un problema de conexión con el servidor. Por favor, intenta de nuevo.");
+            showSystemMessage("Hubo un problema de conexión. Intenta de nuevo.");
         } finally {
             loadingIndicator.classList.add('hidden');
             updateLimitStatusUI(); 
@@ -376,3 +314,5 @@
     
     window.onload = loadSession;
 </script>
+</body>
+</html>
