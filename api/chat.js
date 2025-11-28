@@ -1,57 +1,44 @@
-// /api/chat.js
-import OpenAI from "openai";
+// /api/chat.js – Backend usando Google Gemini
 
 export default async function handler(req, res) {
-  try {
-    // GET → modo prueba (solo para verificar la función)
-    if (req.method === "GET") {
-      return res.status(200).json({
-        ok: true,
-        method: "GET",
-        message: "Función /api/chat funcionando correctamente (modo prueba GET)."
-      });
+    if (req.method !== "POST") {
+        return res.status(405).json({ error: "Método no permitido" });
     }
 
-    // POST → la consulta real del asistente
-    if (req.method === "POST") {
-      const userQuery = req.body?.query;
+    const { query } = req.body;
 
-      if (!userQuery) {
-        return res.status(400).json({
-          error: "Falta el parámetro 'query'."
+    if (!query) {
+        return res.status(400).json({ error: "Falta la consulta" });
+    }
+
+    try {
+        const response = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" +
+            process.env.GEMINI_API_KEY,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [
+                        { role: "user", parts: [{ text: query }] }
+                    ]
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        const answer =
+            data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+            "No pude generar una respuesta.";
+
+        return res.status(200).json({
+            ok: true,
+            text: answer
         });
-      }
 
-      // Cliente OpenAI con la API KEY que cargaste en Vercel (ENV)
-      const client = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
-
-      // Llamada al modelo
-      const completion = await client.responses.create({
-        model: "gpt-4o-mini",
-        input: userQuery,
-      });
-
-      const aiText =
-        completion.output_text ||
-        completion.output?.[0]?.content?.[0]?.text ||
-        "Lo siento, no pude generar una respuesta.";
-
-      return res.status(200).json({
-        text: aiText,
-        sources: [] // dejé espacio para añadir RAG más adelante
-      });
+    } catch (error) {
+        console.error("Error Gemini:", error);
+        return res.status(500).json({ error: "Error interno: Gemini falló." });
     }
-
-    // Otros métodos no permitidos
-    return res.status(405).json({ error: "Método no permitido." });
-
-  } catch (error) {
-    console.error("ERROR en /api/chat:", error);
-    return res.status(500).json({
-      error: "SERVER_ERROR",
-      details: error.message
-    });
-  }
 }
