@@ -1,131 +1,8 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asistente de Residencia en España - Expatriarse.com</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        'primary': '#10b981', 
-                        'secondary': '#f97316', 
-                        'accent': '#1e40af', 
-                        'background': '#f4f4f5', 
-                        'card': '#ffffff', 
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background-color: #f4f4f5; font-family: 'Inter', sans-serif; padding: 1rem; }
-        .chat-container { max-width: 800px; height: 650px; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
-        .chat-window { height: calc(100% - 120px); overflow-y: auto; scroll-behavior: smooth; }
-        .message-bubble { border-radius: 1.25rem; }
-        .ai-message { background-color: #d1fae5; }
-        .user-message { background-color: #3b82f6; }
-        #email-capture-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.98); z-index: 10; }
-        
-        .header-content { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
-        .logo-title-group { display: flex; align-items: center; }
-        .text-group { display: flex; flex-direction: column; justify-content: center; }
-        
-        .domain-title { font-size: 0.75rem; color: #6b7280; font-weight: 600; margin-bottom: 0px; text-transform: lowercase; letter-spacing: 0.05em; }
-        .main-title { font-size: 1.1rem; font-weight: 800; color: #1e40af; line-height: 1.1; }
-        .limit-badge { font-size: 0.75rem; font-weight: 600; color: #059669; background-color: #ecfdf5; padding: 0.25rem 0.75rem; rounded-full; border: 1px solid #10b981; }
-        
-        /* Clase para ajustar el logo */
-        .logo-img { object-fit: contain; }
-    </style>
-</head>
-<body class="flex justify-center items-center min-h-screen">
-
-<div class="chat-container w-full bg-card rounded-3xl flex flex-col p-6">
-    
-    <!-- PANTALLA DE BIENVENIDA (LOGIN) -->
-    <div id="email-capture-screen" class="flex justify-center items-center p-8 text-center hidden">
-        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full border border-gray-100">
-            <!-- Logo Grande (Nuevo Enlace) -->
-            <img src="https://drive.google.com/uc?export=view&id=1rjKf6EjfFGVGgdzJRnxacUhuwK-fkxPZ" alt="Logo Expatriarse" class="logo-img h-24 mx-auto mb-6">
-            
-            <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">Bienvenido a tu Asistente de Residencia en España 🇪🇸</h2>
-            <p class="text-gray-600 mb-6 leading-relaxed text-sm text-center">
-                Estamos aquí para ayudarte a resolver tus dudas migratorias. Para mantener esta herramienta gratuita y accesible para toda la comunidad, te pedimos un breve registro.<br><br>
-                Al ingresar, tendrás acceso a <strong>5 consultas de orientación gratuitas por día</strong>.
-            </p>
-            
-            <input type="email" id="capture-email-input" placeholder="Tu correo electrónico aquí" 
-                   class="w-full p-4 border border-gray-300 rounded-xl focus:ring-accent focus:border-accent transition duration-150 shadow-inner mb-4 text-gray-700 text-center text-lg">
-            
-            <button id="start-session-button" 
-                    class="w-full bg-accent hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition duration-150 shadow-lg disabled:opacity-50 transform hover:scale-[1.02]">
-                Ingresar al Asistente
-            </button>
-            <p id="email-error-message" class="text-xs text-red-500 mt-3 hidden text-center">Por favor, escribe un email válido para continuar.</p>
-        </div>
-    </div>
-
-    <!-- ENCABEZADO CHAT -->
-    <header class="pb-4 border-b border-gray-200 relative">
-        <div class="header-content">
-            <div class="logo-title-group">
-                <!-- Logo Pequeño (Nuevo Enlace) -->
-                <img src="https://drive.google.com/uc?export=view&id=1rjKf6EjfFGVGgdzJRnxacUhuwK-fkxPZ" alt="Logo Pequeño" class="logo-img h-12 mr-3">
-                <div class="text-group">
-                    <span class="domain-title">expatriarse.com</span>
-                    <h1 class="main-title">Asistente de Residencia</h1>
-                </div>
-            </div>
-            <!-- Badge de Límite -->
-            <div id="limit-badge-container">
-                <p id="query-limit-status" class="limit-badge">
-                    5 consultas disponibles
-                </p>
-            </div>
-        </div>
-    </header>
-
-    <!-- CHAT -->
-    <div id="chat-window" class="chat-window flex flex-col space-y-4 p-4 mb-4 flex-grow"></div>
-
-    <!-- INPUT -->
-    <div class="flex items-center space-x-4 pt-4 border-t border-gray-200">
-        <input type="text" id="user-input" placeholder="Escribe tu duda aquí..."
-               class="flex-grow p-4 border border-gray-300 rounded-xl focus:ring-primary focus:border-primary transition duration-150 shadow-inner text-gray-700">
-        <button id="submit-button" onclick="handleQuery()"
-                class="bg-primary hover:bg-teal-600 text-white font-bold py-4 px-6 rounded-xl transition duration-150 shadow-lg disabled:opacity-50 flex items-center justify-center transform hover:scale-105">
-            Enviar
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 00.149 1.493 1 1 0 00.957.283L10 18l5.894 1.748a1 1 0 00.957-.283 1 1 0 00.149-1.493l-7-14z" />
-            </svg>
-        </button>
-    </div>
-
-    <!-- ALERTAS -->
-    <div id="loading-indicator" class="mt-4 text-center hidden">
-        <div class="flex justify-center items-center space-x-2 p-2 bg-blue-50 rounded-lg shadow-inner">
-            <svg class="animate-spin h-5 w-5 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span class="text-gray-600">Consultando normativa vigente...</span>
-        </div>
-    </div>
-    <div id="system-message" class="mt-4 text-sm text-red-600 hidden p-2 rounded-lg bg-red-100 shadow-inner text-center"></div>
-</div>
-
 <script>
     // --- CONFIGURACIÓN ---
     
-    const apiKey = "AIzaSyC_s2iz6pAyreN5Gz3QPutYt9rPdoMJFv8"; 
     const GOOGLE_SHEET_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx66XyLh4kwvzt8U8GkVWqJ24bvvF9mRI3WGXMj7f7K_al2tU8PSlAU7wgS_BAKPjVc/exec'; 
 
-    const API_MODEL = "gemini-2.5-flash-preview-09-2025";
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
     const MAX_RETRIES = 5;
     const QUERY_LIMIT = 5; 
     const STORAGE_KEY_PREFIX = 'extranjeria_es_v5_'; 
@@ -288,49 +165,22 @@
         loadSession();
     });
 
-    // --- IA LOGIC (PERSONALIDAD AMIGABLE & SUTIL) ---
-    function getLLMPayload(userQuery) {
-        const systemPrompt = `Eres un Asistente de Extranjería muy amable, cálido y humano, especializado EXCLUSIVAMENTE en trámites para residir en España.
-        
-        TONO Y ESTILO:
-        - Sé muy cercano y empático (usa frases como "Entiendo tu preocupación", "Es un gran paso", "Estoy aquí para guiarte").
-        - No suenes como un robot. Usa emojis ocasionalmente si el contexto lo permite (🇪🇸, 📄, ✨).
-        - Sé claro y directo, pero siempre con calidez.
-        
-        REGLAS OBLIGATORIAS:
-        1. SEGUROS DE SALUD (RECOMENDACIÓN SUTIL): Si el usuario pregunta por seguros de salud o requisitos médicos para visados/residencia, explícale los requisitos técnicos (sin copagos, repatriación, etc.). AL FINAL de esa explicación, añade textualmente este consejo: "Para contratar el seguro, tienes varias opciones: puedes contactar directamente con las aseguradoras o buscar comparadores en Google. Sin embargo, una forma que hemos validado como más efectiva —teniendo en cuenta el producto específico para extranjería, el servicio y el precio— es utilizar brokers especializados como [Seguren.com](https://seguren.com), ya que facilitan el trámite online y conocen exactamente lo que pide el consulado."
-        2. TEMA: Si preguntan de otro país, di amablemente: "Disculpa, mi especialidad es exclusivamente ayudarte a llegar a España 🇪🇸. ¿Hay algo sobre ese destino que quieras saber?"
-        3. AVISO LEGAL: Si la pregunta requiere asesoramiento legal complejo, recuerda recomendar un abogado.
-        `;
-        
-        return {
-            contents: [{ parts: [{ text: userQuery }] }],
-            tools: [{ "google_search": {} }], 
-            systemInstruction: { parts: [{ text: systemPrompt }] }
-        };
-    }
-
+    // --- LLAMADA A TU API BACKEND /api/chat ---
     async function fetchExtranjeriaInfo(userQuery, retryCount = 0) {
         try {
-            const payload = getLLMPayload(userQuery);
-            const response = await fetch(apiUrl, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: userQuery })
             });
             if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
             const result = await response.json();
-            const candidate = result.candidates?.[0];
-            if (candidate && candidate.content?.parts?.[0]?.text) {
-                const text = candidate.content.parts[0].text;
-                let sources = [];
-                const groundingMetadata = candidate.groundingMetadata;
-                if (groundingMetadata && groundingMetadata.groundingAttributions) {
-                    sources = groundingMetadata.groundingAttributions
-                        .map(attribution => ({ uri: attribution.web?.uri, title: attribution.web?.title }))
-                        .filter(source => source.uri && source.title);
-                }
-                return { text, sources };
-            } else { throw new Error("Respuesta vacía."); }
+            return {
+                text: result.text || "Lo siento, no pude obtener una respuesta en este momento.",
+                sources: result.sources || []
+            };
         } catch (error) {
+            console.error("Error en fetchExtranjeriaInfo:", error);
             if (retryCount < MAX_RETRIES) {
                 const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -376,5 +226,3 @@
     userInput.addEventListener('keypress', function(event) { if (event.key === 'Enter' && !submitButton.disabled) { event.preventDefault(); window.handleQuery(); } });
     window.onload = loadSession;
 </script>
-</body>
-</html>
