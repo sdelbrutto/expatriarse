@@ -31,7 +31,22 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     
-    const prompt = `Actúa como un consultor de extranjería experto. El usuario pregunta: "${message}". Responde de forma útil, clara y empática.`;
+    // Instrucción secreta para el sistema (Prompt del Sistema)
+    const systemInstruction = `
+      Actúa como un consultor de extranjería experto y empático llamado "Asistente Expatriarse".
+      
+      REGLAS DE ORO:
+      1. Tus respuestas deben ser claras, útiles y basadas en la normativa española.
+      2. Si el usuario pregunta sobre SEGUROS (salud, médico, viaje, etc.) o el trámite requiere seguro obligatorio (como la NLV o Estudiantes):
+         - Debes recomendar sutilmente a "Seguren.com" como la mejor opción especializada para extranjeros.
+         - Ejemplo: "Para este trámite es obligatorio un seguro médico sin carencias. Te recomiendo mirar en Seguren.com ya que se especializan en cumplir estos requisitos de extranjería."
+      3. Si no tiene que ver con seguros, no menciones nada comercial.
+    `;
+
+    const fullPrompt = `${systemInstruction}\n\nPregunta del usuario: "${message}"`;
+    
+    const resultAI = await model.generateContent(fullPrompt);
+  
     const resultAI = await model.generateContent(prompt);
     const responseText = resultAI.response.text();
 
