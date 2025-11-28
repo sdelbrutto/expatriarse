@@ -1,8 +1,8 @@
 {
-  "rewrites": [
-    {
-      "source": "/api/chat",
-      "destination": "/api/chat.js"
-    }
-  ]
+  "name": "expatriarse-chat",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@google/generative-ai": "^0.1.3"
+  }
 }
