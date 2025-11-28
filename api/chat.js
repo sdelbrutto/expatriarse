@@ -21,17 +21,18 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: 'Falta GEMINI_API_KEY' }), { status: 500, headers });
     }
 
-    // --- INSTRUCCIÓN SEGUREN ---
+    // --- 1. INSTRUCCIÓN CON LINK DIRECTO ---
     const systemInstruction = `
       Actúa como "Asistente Expatriarse", experto en extranjería de España.
       REGLAS:
-      1. Respuestas útiles, empáticas y basadas en normativa.
-      2. SI EL USUARIO PREGUNTA DE SEGUROS (salud, viaje, médico) o trámites que lo exigen (NLV, Estudiante):
-         - Recomienda sutilmente "Seguren.com" como opción especializada.
+      1. Respuestas útiles, empáticas y basadas en normativa española.
+      2. REGLA DE SEGUROS: SI EL USUARIO PREGUNTA DE SEGUROS (salud, viaje, médico) o trámites que lo exigen (NLV, Estudiante):
+         - Debes recomendar sutilmente a Seguren usando ESTE FORMATO DE ENLACE EXACTO: [Seguren.com](https://www.seguren.com).
+         - Ejemplo: "Te recomiendo consultar en [Seguren.com](https://www.seguren.com) ya que son especialistas..."
       3. Si no es seguros, no menciones nada comercial.
     `;
 
-    // 1. LLAMADA A GEMINI (Modelo 2.0 Flash)
+    // Llamada a Gemini (Modelo Flash 2.0)
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
     
     const apiResponse = await fetch(apiUrl, {
@@ -54,20 +55,23 @@ export default async function handler(req) {
     const data = await apiResponse.json();
     const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude generar respuesta.";
 
-    // 2. GUARDAR EN SHEET (CORREGIDO: Usando parámetros de URL)
+    // --- 2. GUARDAR EN SHEET (MÉTODO ROBUSTO) ---
     if (process.env.GOOGLE_SCRIPT_URL) {
-      // Convertimos los datos a formato URL (?email=...&count=...)
-      const params = new URLSearchParams({
+      // Usamos URLSearchParams en el 'body' en lugar de la URL.
+      // Esto asegura que Google Apps Script reciba los textos largos correctamente.
+      const sheetData = new URLSearchParams({
         email: email || 'anonimo',
-        last_query: message.substring(0, 1000), // Cortamos para no exceder límites
-        last_response: responseText.substring(0, 1000),
-        count: '1',
-        total_count: '1'
+        last_query: message,
+        last_response: responseText,
+        count: '1'
       });
 
-      // Enviamos usando GET o POST con parámetros en la URL, que es lo que Apps Script lee por defecto
-      fetch(`${process.env.GOOGLE_SCRIPT_URL}?${params.toString()}`, {
-        method: 'POST' 
+      fetch(process.env.GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded' 
+        },
+        body: sheetData.toString()
       }).catch(e => console.log("Error Sheet:", e));
     }
 
