@@ -28,8 +28,9 @@ export default async function handler(req) {
       3. Si no es seguros, no menciones nada comercial.
     `;
 
-    // Usamos el modelo 2.0 Flash
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    // CAMBIO CRÍTICO: Usamos 'gemini-1.5-flash'. 
+    // La versión 2.0 tiene límite 0 en cuentas nuevas gratuitas. La 1.5 es gratis.
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -40,7 +41,7 @@ export default async function handler(req) {
             text: `${systemInstruction}\n\nConsulta del usuario: "${message}"`
           }]
         }],
-        // --- AQUÍ ESTÁ LA SOLUCIÓN: BAJAMOS LOS FILTROS ---
+        // Filtros de seguridad relajados para evitar bloqueos falsos
         safetySettings: [
             { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
             { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
@@ -57,21 +58,18 @@ export default async function handler(req) {
 
     const data = await apiResponse.json();
     
-    // Verificamos si hay respuesta o si Google la bloqueó
+    // Obtener respuesta o mensaje de bloqueo
     let responseText = "No pude generar respuesta.";
     
     if (data.candidates && data.candidates.length > 0) {
-        // Si hay texto, lo usamos
         if (data.candidates[0].content && data.candidates[0].content.parts) {
             responseText = data.candidates[0].content.parts[0].text;
-        } 
-        // Si no hay texto, miramos si fue bloqueado por seguridad
-        else if (data.candidates[0].finishReason) {
-            responseText = `⚠️ La respuesta fue bloqueada por Google (Motivo: ${data.candidates[0].finishReason}). Intenta reformular la pregunta.`;
+        } else if (data.candidates[0].finishReason) {
+            responseText = `⚠️ Respuesta bloqueada por seguridad (${data.candidates[0].finishReason}). Intenta preguntar de otra forma.`;
         }
     }
 
-    // Guardar en Sheet (con espera para asegurar que llegue)
+    // Guardar en Sheet (Esperando confirmación para asegurar guardado)
     if (process.env.GOOGLE_SCRIPT_URL) {
       const formData = new URLSearchParams();
       formData.append('email', email || 'No_Email');
@@ -94,6 +92,7 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ response: responseText }), { status: 200, headers });
 
   } catch (error) {
+    // Si falla 1.5-flash, mostramos el error técnico para diagnosticar
     return new Response(JSON.stringify({ response: `⚠️ Error técnico: ${error.message}` }), { status: 200, headers });
   }
 }
