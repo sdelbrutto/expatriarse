@@ -76,6 +76,7 @@ export default async function handler(req, ctx) {
       formData.append('count', '1');
       formData.append('total_count', '1');
 
+      // Esta es la línea mágica que hace que no se trabe la web
       const guardarEnSheet = fetch(process.env.GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
