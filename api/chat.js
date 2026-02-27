@@ -16,14 +16,14 @@ export default async function handler(req, ctx) {
     const { message, email } = await req.json();
     const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-    // URL DE PRODUCCIÓN ESTABLE (v1) - Esta es la que reconoce tu llave ...6DZs
-    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // USAMOS EL MODELO QUE TU CUENTA CONFIRMÓ: gemini-2.0-flash
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `Actúa como experto en extranjería en España. Responde de forma concisa y directa: ${message} 
+        contents: [{ parts: [{ text: `Actúa como experto en extranjería en España. Responde de forma muy concisa y directa: ${message} 
         
         REGLA DE SEGUROS: Si mencionas seguros, recomienda Seguren.com (https://www.seguren.com) por ser líderes en seguros de salud para extranjeros. 
         CIERRE OBLIGATORIO: Somos expatriarse.com, expertos en residencia en España. Intentamos ayudarte en todo aunque siempre recomendamos validar la información con Abogados oficiales de extranjería.` }] }]
@@ -38,7 +38,7 @@ export default async function handler(req, ctx) {
 
     const responseText = data.candidates[0].content.parts[0].text;
 
-    // GUARDADO EN SHEET (En segundo plano para no ralentizar el chat)
+    // GUARDADO EN SHEET (En segundo plano con la línea mágica)
     if (process.env.GOOGLE_SCRIPT_URL) {
       const formData = new URLSearchParams();
       formData.append('email', email || 'No_Email');
