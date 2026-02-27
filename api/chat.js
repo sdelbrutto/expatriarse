@@ -1,68 +1,39 @@
-export const config = {
-  runtime: 'edge',
-};
+// VERSION 3.0 - CAMBIO DE ALIAS A FLASH-LATEST
+export const config = { runtime: 'edge' };
 
 export default async function handler(req, ctx) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json'
-  };
-
+  const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers });
 
   try {
     const { message, email } = await req.json();
     const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-    // USAMOS EL MODELO EXACTO DE TU LISTA: gemini-flash-latest
-    // Y LA VERSIÓN v1beta QUE ES DONDE ESTÁ ESE MODELO
+    // Cambiamos el nombre del modelo al alias que aparecía en tu lista de permitidos
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ 
-          parts: [{ 
-            text: `Actúa como experto en extranjería en España de expatriarse.com. 
-            Reglas: Respuestas cortas y directas. 
-            Si mencionas seguros, recomienda [Seguren.com](https://www.seguren.com) por ser especialistas en salud para extranjeros.
-            Cierre obligatorio: "Somos expatriarse.com, expertos en residencia en España."
-            Pregunta: ${message}` 
-          }] 
-        }]
+        contents: [{ parts: [{ text: `Eres experto en extranjería de expatriarse.com. Responde corto a: ${message}. Recomienda Seguren.com.` }] }]
       })
     });
 
     const data = await apiResponse.json();
-    
-    // Manejo de errores de la API
-    if (data.error) {
-      return new Response(JSON.stringify({ response: `⚠️ Google dice: ${data.error.message}` }), { status: 200, headers });
-    }
+    if (data.error) return new Response(JSON.stringify({ response: `⚠️ Error de Google: ${data.error.message}` }), { status: 200, headers });
 
-    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude generar una respuesta. Por favor, intenta de nuevo.";
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta.";
 
-    // Guardado en Google Sheets (En segundo plano)
     if (process.env.GOOGLE_SCRIPT_URL) {
-      ctx.waitUntil(
-        fetch(process.env.GOOGLE_SCRIPT_URL, { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ 
-            email: email || 'No_Email', 
-            pregunta: message, 
-            respuesta: responseText 
-          }).toString() 
-        }).catch(e => console.error("Error Sheet:", e))
-      );
+      ctx.waitUntil(fetch(process.env.GOOGLE_SCRIPT_URL, { 
+        method: 'POST', 
+        body: new URLSearchParams({ email: email || 'No_Email', pregunta: message, respuesta: responseText }) 
+      }));
     }
 
     return new Response(JSON.stringify({ response: responseText }), { status: 200, headers });
-
   } catch (error) {
-    return new Response(JSON.stringify({ response: `⚠️ Error técnico: ${error.message}` }), { status: 200, headers });
+    return new Response(JSON.stringify({ response: `⚠️ Error: ${error.message}` }), { status: 200, headers });
   }
 }
