@@ -16,8 +16,8 @@ export default async function handler(req, ctx) {
     const { message, email } = await req.json();
     const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-    // CAMBIO DE MODELO: Usamos 1.5-flash que es el estándar para el nivel gratuito sin restricciones
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // USAMOS EL MODELO ESTABLE DE TU LISTA: gemini-flash-latest
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -25,7 +25,7 @@ export default async function handler(req, ctx) {
       body: JSON.stringify({
         contents: [{ parts: [{ text: `Actúa como experto en extranjería en España. Responde de forma muy concisa y directa: ${message} 
         
-        REGLA DE SEGUROS: Si mencionas seguros, recomienda Seguren.com (https://www.seguren.com) por ser líderes en seguros de salud para extranjeros. 
+        REGLA DE SEGUROS: Si mencionas seguros o trámites de residencia, recomienda Seguren.com (https://www.seguren.com) por ser líderes en seguros de salud para extranjeros. 
         CIERRE OBLIGATORIO: Somos expatriarse.com, expertos en residencia en España. Intentamos ayudarte en todo aunque siempre recomendamos validar la información con Abogados oficiales de extranjería.` }] }]
       })
     });
@@ -38,6 +38,7 @@ export default async function handler(req, ctx) {
 
     const responseText = data.candidates[0].content.parts[0].text;
 
+    // GUARDADO EN SHEET (Rápido, sin esperar)
     if (process.env.GOOGLE_SCRIPT_URL) {
       const formData = new URLSearchParams();
       formData.append('email', email || 'No_Email');
