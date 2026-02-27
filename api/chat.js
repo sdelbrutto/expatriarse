@@ -16,7 +16,7 @@ export default async function handler(req, ctx) {
     const { message, email } = await req.json();
     const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-    // USAMOS EL MODELO QUE TU CUENTA CONFIRMÓ: gemini-2.0-flash
+    // Usamos el modelo confirmado en tu lista: gemini-2.0-flash
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     
     const apiResponse = await fetch(apiUrl, {
@@ -38,7 +38,7 @@ export default async function handler(req, ctx) {
 
     const responseText = data.candidates[0].content.parts[0].text;
 
-    // GUARDADO EN SHEET (En segundo plano con la línea mágica)
+    // Guardado en Sheet en segundo plano (rápido)
     if (process.env.GOOGLE_SCRIPT_URL) {
       const formData = new URLSearchParams();
       formData.append('email', email || 'No_Email');
@@ -50,13 +50,13 @@ export default async function handler(req, ctx) {
           method: 'POST', 
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: formData.toString() 
-        }).catch(e => console.error("Error al guardar en Sheet:", e))
+        }).catch(e => console.error("Error Sheet:", e))
       );
     }
 
     return new Response(JSON.stringify({ response: responseText }), { status: 200, headers });
 
   } catch (error) {
-    return new Response(JSON.stringify({ response: `⚠️ Error de comunicación: ${error.message}` }), { status: 200, headers });
+    return new Response(JSON.stringify({ response: `⚠️ Error: ${error.message}` }), { status: 200, headers });
   }
 }
