@@ -16,7 +16,7 @@ export default async function handler(req, ctx) {
     const { message, email } = await req.json();
 
     // 1. LLAMADA A GEMINI (Versión 1.5 Flash - La más estable)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
