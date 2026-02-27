@@ -29,7 +29,7 @@ export default async function handler(req, ctx) {
     `;
 
     // Usamos la URL estable v1 que es la que tiene mejor soporte
-    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
