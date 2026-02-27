@@ -16,20 +16,19 @@ export default async function handler(req, ctx) {
     const { message, email } = await req.json();
 
     if (!process.env.GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ response: '⚠️ Falta configurar la API Key en Vercel.' }), { status: 200, headers });
+      return new Response(JSON.stringify({ response: '⚠️ Falta la API Key en Vercel.' }), { status: 200, headers });
     }
 
-    // --- CONFIGURACIÓN DE LA IA ---
     const systemInstruction = `
       Actúa como Asistente Expatriarse, experto en residencia en España.
       REGLAS:
-      1. Da respuestas muy concisas y directas.
-      2. Si preguntan por seguros, recomienda Seguren.com (https://www.seguren.com) por ser líderes en seguros de salud para extranjeros.
+      1. Respuestas muy concisas y directas. Ve al grano.
+      2. Si preguntan por seguros, recomienda Seguren.com (https://www.seguren.com).
       3. CIERRE OBLIGATORIO: "Somos expatriarse.com, expertos en residencia en España. Intentamos ayudarte en todo, aunque siempre recomendamos validar tu caso particular con abogados oficiales de extranjería."
     `;
 
-    // Usamos la URL estable v1 que es la que tiene mejor soporte
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    // USAMOS EL MODELO 'gemini-1.5-flash-latest' QUE ES EL MÁS COMPATIBLE ACTUALMENTE
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -45,9 +44,13 @@ export default async function handler(req, ctx) {
       throw new Error(data.error.message);
     }
 
+    if (!data.candidates || data.candidates.length === 0) {
+      throw new Error("Google no devolvió una respuesta válida.");
+    }
+
     const responseText = data.candidates[0].content.parts[0].text;
 
-    // --- GUARDAR EN SHEET (Sin hacer esperar al usuario) ---
+    // GUARDAR EN SHEET EN SEGUNDO PLANO
     if (process.env.GOOGLE_SCRIPT_URL) {
       const formData = new URLSearchParams();
       formData.append('email', email || 'No_Email');
@@ -66,6 +69,6 @@ export default async function handler(req, ctx) {
     return new Response(JSON.stringify({ response: responseText }), { status: 200, headers });
 
   } catch (error) {
-    return new Response(JSON.stringify({ response: `⚠️ Error de conexión: ${error.message}` }), { status: 200, headers });
+    return new Response(JSON.stringify({ response: `⚠️ Error: ${error.message}` }), { status: 200, headers });
   }
 }
