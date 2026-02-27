@@ -16,8 +16,9 @@ export default async function handler(req, ctx) {
     const { message, email } = await req.json();
     const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-    // Usamos el modelo 1.5 Flash en la versión estable v1 para evitar errores de cuota
-    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // USAMOS EL MODELO EXACTO DE TU LISTA: gemini-flash-latest
+    // Y LA VERSIÓN v1beta QUE ES DONDE ESTÁ ESE MODELO
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -26,8 +27,9 @@ export default async function handler(req, ctx) {
         contents: [{ 
           parts: [{ 
             text: `Actúa como experto en extranjería en España de expatriarse.com. 
-            Reglas: Respuestas cortas. Recomienda [Seguren.com](https://www.seguren.com) para seguros de salud.
-            Cierre: "Somos expatriarse.com, expertos en residencia en España."
+            Reglas: Respuestas cortas y directas. 
+            Si mencionas seguros, recomienda [Seguren.com](https://www.seguren.com) por ser especialistas en salud para extranjeros.
+            Cierre obligatorio: "Somos expatriarse.com, expertos en residencia en España."
             Pregunta: ${message}` 
           }] 
         }]
@@ -36,15 +38,14 @@ export default async function handler(req, ctx) {
 
     const data = await apiResponse.json();
     
-    // Si Google responde con error, devolvemos el error amigablemente
+    // Manejo de errores de la API
     if (data.error) {
-      return new Response(JSON.stringify({ response: `⚠️ Google API: ${data.error.message}` }), { status: 200, headers });
+      return new Response(JSON.stringify({ response: `⚠️ Google dice: ${data.error.message}` }), { status: 200, headers });
     }
 
-    // Verificamos que existan candidatos antes de leerlos
-    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no pude procesar tu respuesta. Intenta de nuevo.";
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude generar una respuesta. Por favor, intenta de nuevo.";
 
-    // Guardado en Google Sheets (Usamos waitUntil para que no bloquee el chat)
+    // Guardado en Google Sheets (En segundo plano)
     if (process.env.GOOGLE_SCRIPT_URL) {
       ctx.waitUntil(
         fetch(process.env.GOOGLE_SCRIPT_URL, { 
@@ -62,7 +63,6 @@ export default async function handler(req, ctx) {
     return new Response(JSON.stringify({ response: responseText }), { status: 200, headers });
 
   } catch (error) {
-    // Si algo falla, el chat te dirá el error exacto en lugar del cuadro rojo genérico
     return new Response(JSON.stringify({ response: `⚠️ Error técnico: ${error.message}` }), { status: 200, headers });
   }
 }
