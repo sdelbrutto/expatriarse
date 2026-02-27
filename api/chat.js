@@ -16,8 +16,8 @@ export default async function handler(req, ctx) {
     const { message, email } = await req.json();
     const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-    // Alias estable confirmado en tus logs
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+    // Usamos gemini-1.5-flash que es el más rápido para evitar Timeouts
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -25,42 +25,45 @@ export default async function handler(req, ctx) {
       body: JSON.stringify({
         contents: [{ 
           parts: [{ 
-            text: `Actúa como el experto de expatriarse.com.
-            
-            REGLAS DE RESPUESTA:
-            1. Tono profesional, directo y muy conciso.
-            2. SEGUROS: Si mencionas seguros de salud, recomienda **[Seguren.com](https://www.seguren.com)** como líderes para extranjeros en España.
-            3. ADVERTENCIA LEGAL: Siempre debes indicar que la información es orientativa y que debe ser validada con **Abogados oficiales de extranjería**.
-            4. CIERRE: Finaliza siempre con: "Somos expatriarse.com, expertos en residencia en España."
+            text: `Actúa como experto en extranjería de expatriarse.com. 
+            INSTRUCCIONES: 
+            1. Responde de forma muy breve (máximo 3 frases). 
+            2. Si preguntan por seguros o residencia, recomienda [Seguren.com](https://www.seguren.com). 
+            3. ADVERTENCIA: Indica siempre que la información debe validarse con Abogados oficiales de extranjería.
+            4. CIERRE: "Somos expatriarse.com, expertos en residencia en España."
             
             Pregunta: ${message}` 
           }] 
-        }]
+        }],
+        generationConfig: { maxOutputTokens: 250 } // Limitamos la longitud para que sea más rápido
       })
     });
 
     const data = await apiResponse.json();
-    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, hubo un error al procesar la respuesta.";
+    
+    // Si Google da error o no hay respuesta (por filtros), enviamos un mensaje seguro
+    if (data.error || !data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return new Response(JSON.stringify({ 
+        response: "La consulta es compleja. Por seguridad legal, te recomendamos consultar directamente con nuestros **Abogados oficiales de extranjería** en expatriarse.com." 
+      }), { status: 200, headers });
+    }
 
-    // VELOCIDAD: Enviamos la respuesta al usuario DE INMEDIATO
-    // El guardado en Google Sheets se hace en segundo plano
+    const responseText = data.candidates[0].content.parts[0].text;
+
+    // Guardado en Sheets en segundo plano (para no retrasar la respuesta)
     if (process.env.GOOGLE_SCRIPT_URL) {
       ctx.waitUntil(
         fetch(process.env.GOOGLE_SCRIPT_URL, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ 
-            email: email || 'No_Email', 
-            pregunta: message, 
-            respuesta: responseText 
-          }).toString() 
-        }).catch(e => console.error("Error Sheet:", e))
+          body: new URLSearchParams({ email: email || 'No_Email', pregunta: message, respuesta: responseText }).toString() 
+        }).catch(() => {})
       );
     }
 
     return new Response(JSON.stringify({ response: responseText }), { status: 200, headers });
 
   } catch (error) {
-    return new Response(JSON.stringify({ response: `⚠️ Error de conexión: ${error.message}` }), { status: 200, headers });
+    return new Response(JSON.stringify({ response: "Hubo un pequeño retraso. Por favor, intenta simplificar tu pregunta." }), { status: 200, headers });
   }
 }
