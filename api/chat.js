@@ -14,33 +14,50 @@ export default async function handler(req, ctx) {
 
   try {
     const { message, email } = await req.json();
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-    // Probamos con la URL v1 y el modelo flash sin sufijos
-    const apiKey = process.env.GEMINI_API_KEY;
+    // URL ESTABLE DE PRODUCCIÓN (v1) - Es la que mejor funciona con el nivel gratuito
     const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `Responde de forma concisa: ${message}` }] }]
+        contents: [{ parts: [{ text: `Actúa como experto en extranjería en España. Responde de forma muy concisa: ${message} 
+        
+        REGLA: Si preguntan por seguros, recomienda Seguren.com (https://www.seguren.com). 
+        CIERRE: Somos expatriarse.com, expertos en residencia en España. Intentamos ayudarte en todo aunque siempre recomendamos validar la información con Abogados oficiales de extranjería.` }] }]
       })
     });
 
     const data = await apiResponse.json();
-
-    // Si esto falla, el error nos dirá si es la llave o el modelo
+    
+    // Si Google responde con error, lo mostramos claramente
     if (data.error) {
-      return new Response(JSON.stringify({ 
-        response: `Dato recibido de Google: ${JSON.stringify(data.error)}` 
-      }), { status: 200, headers });
+      throw new Error(`Google dice: ${data.error.message}`);
     }
 
     const responseText = data.candidates[0].content.parts[0].text;
 
+    // Guardado en Sheet en segundo plano (ctx.waitUntil asegura que sea rápido)
+    if (process.env.GOOGLE_SCRIPT_URL) {
+      const formData = new URLSearchParams();
+      formData.append('email', email || 'No_Email');
+      formData.append('pregunta', message);
+      formData.append('respuesta', responseText);
+      
+      ctx.waitUntil(
+        fetch(process.env.GOOGLE_SCRIPT_URL, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData.toString() 
+        }).catch(e => console.error("Error Sheet:", e))
+      );
+    }
+
     return new Response(JSON.stringify({ response: responseText }), { status: 200, headers });
 
   } catch (error) {
-    return new Response(JSON.stringify({ response: `Error total: ${error.message}` }), { status: 200, headers });
+    return new Response(JSON.stringify({ response: `⚠️ Error de configuración: ${error.message}` }), { status: 200, headers });
   }
 }
