@@ -16,8 +16,8 @@ export default async function handler(req, ctx) {
     const { message, email } = await req.json();
     const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-    // Usamos el modelo confirmado en tu lista: gemini-2.0-flash
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    // CAMBIO DE MODELO: Usamos 1.5-flash que es el estándar para el nivel gratuito sin restricciones
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -38,7 +38,6 @@ export default async function handler(req, ctx) {
 
     const responseText = data.candidates[0].content.parts[0].text;
 
-    // Guardado en Sheet en segundo plano (rápido)
     if (process.env.GOOGLE_SCRIPT_URL) {
       const formData = new URLSearchParams();
       formData.append('email', email || 'No_Email');
